@@ -1,6 +1,7 @@
 from datetime import datetime
-import pytest
+
 from src.models.workout import WorkoutData
+
 
 def test_workout_data_creation() -> None:
     """Test WorkoutData model creation and validation."""

@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+
+from pydantic import BaseModel, ConfigDict
+
 
 class WorkoutData(BaseModel):
     """Model representing a running workout."""
@@ -13,9 +15,7 @@ class WorkoutData(BaseModel):
     average_power: Optional[float] = None
     total_elevation_gain: Optional[float] = None
     
-    class Config:
-        """Pydantic model configuration."""
-        
+    model_config = ConfigDict(
         json_schema_extra = {
             "example": {
                 "id": "w123",
@@ -27,3 +27,4 @@ class WorkoutData(BaseModel):
                 "total_elevation_gain": 100.0
             }
         }
+    )
