@@ -1,8 +1,20 @@
 -r requirements.txt
+
+# Testing
 pytest==8.0.0
 pytest-cov==4.1.0
 pytest-mock==3.12.0
+
+# Linting and Formatting
 ruff==0.2.0
-mypy==1.8.0
 black==24.1.0
+mypy==1.8.0
+
+# Type Checking
 types-boto3==1.0.2
+pandas-stubs==2.1.4.231227
+types-pytz>=2022.1.1
+
+# LocalStack
+awscli-local==0.20
+localstack>=2.3.2

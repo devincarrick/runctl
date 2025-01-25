@@ -1,3 +1,4 @@
+# Python
 __pycache__/
 *.py[cod]
 *.class
@@ -19,11 +20,47 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Environment
 .env
-.venv
+venv/
+.venv/
+env/
+ENV/
+.env.local
+.env.*.local
+.python-version  # pyenv
+
+# Testing and Coverage
 .coverage
+.coverage.*
 htmlcov/
+coverage.xml
 .pytest_cache/
+
+# Type checking and Linting
 .mypy_cache/
 .ruff_cache/
+
+# IDE/Editor
+.cursor/
+.cursor-log/
+*.swp
+*.swo
+.DS_Store
+
+# LocalStack
+volume/
+.localstack/
+*.localstack/
+
+# Logs
+*.log
+logs/
+
+# Build/Deploy
+.aws-sam/
+*.zip
+
+# Project specific
 project_knowledge/

@@ -1,3 +1,4 @@
+# Core dependencies
 pandas==2.2.3
 numpy==2.0.2
 boto3==1.34.0
@@ -6,3 +7,11 @@ typer==0.9.0
 pydantic==2.6.0
 python-dotenv==1.0.0
 rich==13.7.0
+
+# Dependency conflict resolution
+urllib3<2.0.0
+botocore<1.35.0,>=1.34.0
+requests>=2.20.0
+python-dateutil>=2.8.2
+pytz>=2020.1
+tzdata>=2022.7
