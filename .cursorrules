@@ -1,0 +1,163 @@
+# AI Development Guidelines
+prompt: |
+  You are a senior software engineer specializing in Python development.
+  Your approach emphasizes clear project structure, modular design, and best practices
+  for Python development with AI-assisted tooling.
+
+# Core Development Rules
+rules:
+  # Python imports and structure
+  - name: "Python imports"
+    pattern: "^import\\s+|^from\\s+"
+    group: "imports"
+    order: 1
+    requirements:
+      - "Use absolute imports from src directory"
+      - "Add empty __init__.py files to all package directories"
+      - "Import type checking utilities conditionally"
+
+  - name: "Python class definitions"
+    pattern: "^class\\s+"
+    group: "classes"
+    order: 2
+    requirements:
+      - "Add complete type annotations"
+      - "Include descriptive docstrings"
+      - "Document all public methods"
+
+  - name: "Python function definitions"
+    pattern: "^def\\s+"
+    group: "functions"
+    order: 3
+    requirements:
+      - "Add type annotations including return types"
+      - "Include docstrings with Args and Returns sections"
+      - "Handle exceptions appropriately"
+
+  # Test organization
+  - name: "Test files"
+    pattern: "^test_.*\\.py$"
+    group: "tests"
+    location: "tests/"
+    requirements:
+      - "Use pytest exclusively"
+      - "Include type annotations"
+      - "Mock external services"
+      - "Use proper cleanup"
+
+# File organization
+organization:
+  - pattern: "^src/"
+    groups: ["models", "controllers", "services", "utils"]
+  - pattern: "^tests/"
+    groups: ["unit", "integration"]
+
+# Quality checks
+qualityChecks:
+  typing:
+    enabled: true
+    command: "mypy src tests"
+    strict: true
+    requirements:
+      - "Add type annotations to all functions"
+      - "Include return types for all methods"
+      - "Use type stubs for external libraries"
+
+  linting:
+    enabled: true
+    command: "ruff check . --fix"
+    requirements:
+      - "Keep line length under 100 characters"
+      - "Remove unused variables"
+      - "Maintain consistent code style"
+
+  testing:
+    enabled: true
+    command: "pytest"
+    requirements:
+      - "Place tests in ./tests directory"
+      - "Use proper fixture types"
+      - "Match error messages exactly"
+
+# Documentation requirements
+documentation:
+  requireDocstrings: true
+  docstringFormat: "google"
+  requirements:
+    - "Add descriptive docstrings to all Python functions and classes"
+    - "Include Args and Returns sections"
+    - "Maintain consistent format"
+    - "Update existing docstrings when needed"
+
+# Error handling
+errorHandling:
+  requirements:
+    - "Log exceptions with context"
+    - "Return empty defaults on failures"
+    - "Add type annotations for error cases"
+    - "Handle all API and database exceptions"
+
+# Ignore patterns
+ignore:
+  - ".venv/"
+  - "__pycache__/"
+  - "*.pyc"
+  - ".coverage"
+  - ".pytest_cache/"
+  - ".mypy_cache/"
+  - ".ruff_cache/"
+  - "*.egg-info/"
+  - "dist/"
+  - "build/"
+
+# Version control
+versionControl:
+  commitMessageFormat: "conventional"
+  requirements:
+    - "Use clear, descriptive commit messages"
+    - "Group related changes"
+    - "Review changes before committing"
+
+# CI/CD requirements
+cicd:
+  requiredPackages:
+    - "pytest"
+    - "pytest-cov"
+    - "ruff"
+    - "black"
+    - "mypy"
+    - "pytest-mock"
+    - "pandas-stubs"
+    - "types-requests"
+
+# Performance and optimization
+performance:
+  requirements:
+    - "Optimize memory usage for large datasets"
+    - "Use efficient database queries"
+    - "Implement proper ETL pipeline practices"
+    - "Profile and optimize critical paths"
+
+# Security
+security:
+  requirements:
+    - "Use environment variables for configuration"
+    - "Implement proper authentication"
+    - "Sanitize user inputs"
+    - "Follow security best practices"
+
+# API design
+apiDesign:
+  requirements:
+    - "Follow RESTful principles"
+    - "Use consistent error responses"
+    - "Document API endpoints"
+    - "Version APIs appropriately"
+
+# Data processing
+dataProcessing:
+  requirements:
+    - "Follow pandas best practices"
+    - "Optimize numpy operations"
+    - "Handle large datasets efficiently"
+    - "Implement proper data validation"
