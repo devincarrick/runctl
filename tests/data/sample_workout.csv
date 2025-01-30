@@ -1,0 +1,3 @@
+time,distance,power,heartrate,cadence,elevation,pace,elapsed_time
+2024-01-30 07:00:00,1000,200,150,180,100,360,600
+2024-01-30 07:01:00,2000,250,155,182,102,355,660
