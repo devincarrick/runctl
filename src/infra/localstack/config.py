@@ -41,9 +41,7 @@ def setup_localstack_resources() -> None:
     dynamodb = config.get_client('dynamodb')
     _create_dynamodb_tables(dynamodb)
     
-    # Initialize Lambda
-    lambda_client = config.get_client('lambda')
-    _create_lambda_functions(lambda_client)
+    return config
 
 def _create_s3_buckets(s3_client: Any) -> None:
     """Create required S3 buckets if they don't exist.
@@ -96,42 +94,3 @@ def _create_dynamodb_tables(dynamodb_client: Any) -> None:
             print(f"Created DynamoDB table: {table_name}")
         except dynamodb_client.exceptions.ResourceInUseException:
             print(f"Table already exists: {table_name}")
-
-def _create_lambda_functions(lambda_client: Any) -> None:
-    """Create required Lambda functions if they don't exist.
-    
-    Args:
-        lambda_client: Boto3 Lambda client
-    """
-    functions = {
-        'runctl-process-csv': {
-            'Runtime': 'python3.9',
-            'Handler': 'process_csv.handler',
-            'Role': 'arn:aws:iam::000000000000:role/lambda-role',
-            'Code': {
-                'ZipFile': _get_lambda_zip('process_csv')
-            }
-        }
-    }
-    
-    for function_name, function_def in functions.items():
-        try:
-            lambda_client.create_function(
-                FunctionName=function_name,
-                **function_def
-            )
-            print(f"Created Lambda function: {function_name}")
-        except lambda_client.exceptions.ResourceConflictException:
-            print(f"Function already exists: {function_name}")
-
-def _get_lambda_zip(function_name: str) -> bytes:
-    """Get the ZIP file content for a Lambda function.
-    
-    Args:
-        function_name: Name of the Lambda function
-        
-    Returns:
-        bytes: ZIP file content
-    """
-    # TODO: Implement actual ZIP file creation for Lambda code
-    return b"dummy_zip_content"

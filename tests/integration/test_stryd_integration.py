@@ -40,6 +40,14 @@ def real_workout_data() -> Path:
     return Path("tests/data/real_workout_test.csv")
 
 
+@pytest.fixture
+def service(localstack_config: LocalStackConfig) -> StrydDataIngestionService:
+    """Create a test service instance."""
+    storage = S3Storage("runctl-raw-data", localstack_config.endpoint_url)
+    validator = StrydDataValidator()
+    return StrydDataIngestionService(storage, validator, athlete_weight=65.0)  # Test with 65kg
+
+
 def test_stryd_ingestion_with_localstack(
     localstack_config: LocalStackConfig,
     sample_workout: Path
@@ -72,14 +80,9 @@ def test_stryd_ingestion_with_localstack(
 
 def test_stryd_ingestion_with_real_data(
     real_workout_data: Path,
-    localstack_config: LocalStackConfig
+    service: StrydDataIngestionService
 ) -> None:
     """Test Stryd ingestion with real workout data."""
-    # Setup
-    storage = S3Storage("runctl-raw-data", localstack_config.endpoint_url)
-    validator = StrydDataValidator()
-    service = StrydDataIngestionService(storage, validator)
-    
     # Read the source file to compare
     df = pd.read_csv(real_workout_data)
     print(f"\nInput file power stats:\n{df['Power (w/kg)'].describe()}")
@@ -90,6 +93,7 @@ def test_stryd_ingestion_with_real_data(
     # Debug output
     print(f"\nProcessed {len(workouts)} workouts")
     print(f"First workout power: {workouts[0].average_power:.2f} watts")
+    print(f"Power per kg: {workouts[0].average_power/service.athlete_weight:.2f} w/kg")
     
     # Verify results
     assert len(workouts) == 1, "Should create one workout from the file"

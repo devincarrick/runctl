@@ -62,10 +62,34 @@ class StrydDataValidator:
         """Validate Stryd data format and contents."""
         messages: List[str] = []
         
+        # Check for empty DataFrame
+        if data.empty:
+            messages.append("DataFrame is empty")
+            return False, messages
+        
+        # Check for required columns
         missing_cols = set(self.REQUIRED_COLUMNS) - set(data.columns)
         if missing_cols:
             messages.append(f"Missing required columns: {missing_cols}")
             return False, messages
+        
+        # Validate data types
+        expected_types = {
+            'time': 'datetime64[ns]',
+            'distance': 'float64',
+            'power': 'float64',
+            'heartrate': 'float64',
+            'cadence': 'float64',
+            'elevation': 'float64',
+            'pace': 'float64',
+            'elapsed_time': 'float64'
+        }
+        
+        for col, expected_type in expected_types.items():
+            try:
+                data[col].astype(expected_type)
+            except (ValueError, TypeError):
+                messages.append(f"Invalid data type for column {col}")
             
         for rule in self.rules:
             try:
@@ -91,28 +115,52 @@ class S3Storage:
         
     def upload_file(self, file_path: Path, key: str) -> None:
         """Upload file to S3 bucket."""
+        file_path = Path(file_path)  # Convert string to Path if needed
+        
+        # Check if file exists
+        if not file_path.exists():
+            raise StorageError(f"Failed to upload file: No such file or directory: '{file_path}'")
+            
         try:
             self.s3.upload_file(str(file_path), self.bucket, key)
         except ClientError as e:
             raise StorageError(f"Failed to upload file: {str(e)}") from e
+        except ConnectionError as e:
+            raise StorageError(f"Failed to upload file: Network error - {str(e)}") from e
+        except Exception as e:
+            raise StorageError(f"Failed to upload file: Unexpected error - {str(e)}") from e
 
 class StrydDataIngestionService:
     """Service for ingesting Stryd workout data."""
     
-    def __init__(self, storage: 'S3Storage', validator: 'StrydDataValidator') -> None:
+    def __init__(
+        self,
+        storage: 'S3Storage',
+        validator: 'StrydDataValidator',
+        athlete_weight: float = 70.0
+    ) -> None:
+        """Initialize the service.
+        
+        Args:
+            storage: S3 storage handler
+            validator: Data validator
+            athlete_weight: Athlete weight in kg for power calculations
+        """
         self.storage = storage
         self.validator = validator
+        self.athlete_weight = athlete_weight
         
     def _transform_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Transform raw Stryd data to expected format."""
         logger.debug(f"Columns before transform: {df.columns.tolist()}")
+        logger.debug(f"Using athlete weight: {self.athlete_weight}kg")
         
         # Create a new DataFrame with just the columns we need
         transformed_df = pd.DataFrame()
         
         # Transform each column individually
         transformed_df['time'] = pd.to_datetime(df['Timestamp'])
-        transformed_df['power'] = df['Power (w/kg)'] * 70  # Convert to watts
+        transformed_df['power'] = df['Power (w/kg)'] * self.athlete_weight  # Convert to watts
         transformed_df['distance'] = df['Stryd Distance (meters)']
         transformed_df['cadence'] = df['Cadence (spm)']
         transformed_df['elevation'] = df['Stryd Elevation (m)']
