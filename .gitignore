@@ -61,6 +61,3 @@ logs/
 # Build/Deploy
 .aws-sam/
 *.zip
-
-# Project specific
-project_knowledge/
