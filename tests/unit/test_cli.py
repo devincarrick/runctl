@@ -1,11 +1,16 @@
+"""Unit tests for CLI commands."""
+
 from typing import TYPE_CHECKING
 from pathlib import Path
 from typer.testing import CliRunner
 import pytest
 from pytest_mock import MockerFixture
 from datetime import datetime
+from unittest.mock import Mock, patch
+import typer
 
-from src.cli import app
+from src.cli import app, validate_weight, validate_critical_power, main
+from src.models.workout import WorkoutData
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -311,3 +316,239 @@ def test_analyze_command_with_multiple_workouts_and_weight_prompt(tmp_path: Path
     assert "Processed 2 workouts" in result.stdout
     assert "3.1 W/kg" in result.stdout  # 200/65
     assert "3.8 W/kg" in result.stdout  # 250/65
+
+def test_validate_weight():
+    """Test weight validation."""
+    # Test valid weight
+    assert validate_weight(70.0) == 70.0
+    
+    # Test None weight
+    assert validate_weight(None) is None
+    
+    # Test invalid weight
+    with pytest.raises(typer.BadParameter, match="Weight must be greater than 0"):
+        validate_weight(0.0)
+    with pytest.raises(typer.BadParameter, match="Weight must be greater than 0"):
+        validate_weight(-1.0)
+
+def test_validate_critical_power():
+    """Test critical power validation."""
+    # Test valid critical power
+    assert validate_critical_power(250) == 250
+    
+    # Test None critical power
+    assert validate_critical_power(None) is None
+    
+    # Test invalid critical power
+    with pytest.raises(typer.BadParameter, match="Critical power must be greater than 0"):
+        validate_critical_power(0)
+    with pytest.raises(typer.BadParameter, match="Critical power must be greater than 0"):
+        validate_critical_power(-100)
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_success(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test successful workout file analysis."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.csv"
+    test_file.write_text("test data")
+    
+    # Mock service response
+    mock_workout = WorkoutData(
+        id="test123",
+        date="2024-02-06T12:00:00",
+        distance=10000.0,
+        duration=3600,
+        average_pace=360.0,
+        average_power=250.0,
+        total_elevation_gain=100.0,
+        heart_rate=165.0,
+        cadence=170.0
+    )
+    mock_service_instance = Mock()
+    mock_service_instance.process_file.return_value = [mock_workout]
+    mock_service.return_value = mock_service_instance
+    
+    # Run command
+    result = runner.invoke(app, ["analyze", str(test_file), "--weight", "70.0"])
+    
+    assert result.exit_code == 0
+    assert "Processed 1 workouts" in result.stdout
+    assert "Average Power: 250.0W (3.6 W/kg)" in result.stdout
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_file_not_found(mock_validator, mock_storage, mock_service):
+    """Test analyze command with non-existent file."""
+    result = runner.invoke(app, ["analyze", "nonexistent.csv", "--weight", "70.0"])
+    
+    assert result.exit_code == 1
+    assert "File nonexistent.csv does not exist" in result.stdout
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_unsupported_format(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test analyze command with unsupported format."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.fit"
+    test_file.write_text("test data")
+    
+    result = runner.invoke(app, [
+        "analyze",
+        str(test_file),
+        "--format", "fit",
+        "--weight", "70.0"
+    ])
+    
+    assert "Format fit not supported yet" in result.stdout
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_processing_error(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test analyze command with processing error."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.csv"
+    test_file.write_text("test data")
+    
+    # Mock service to raise an error
+    mock_service_instance = Mock()
+    mock_service_instance.process_file.side_effect = Exception("Processing error")
+    mock_service.return_value = mock_service_instance
+    
+    result = runner.invoke(app, ["analyze", str(test_file), "--weight", "70.0"])
+    
+    assert result.exit_code == 1
+    assert "Error processing file: Processing error" in result.stdout
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_weight_prompt(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test analyze command with weight prompt."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.csv"
+    test_file.write_text("test data")
+    
+    # Mock service response
+    mock_workout = WorkoutData(
+        id="test123",
+        date="2024-02-06T12:00:00",
+        distance=10000.0,
+        duration=3600,
+        average_pace=360.0,
+        average_power=250.0,
+        total_elevation_gain=100.0,
+        heart_rate=165.0,
+        cadence=170.0
+    )
+    mock_service_instance = Mock()
+    mock_service_instance.process_file.return_value = [mock_workout]
+    mock_service.return_value = mock_service_instance
+    
+    # Run command without weight parameter (should prompt)
+    result = runner.invoke(app, ["analyze", str(test_file)], input="70.0\n")
+    
+    assert result.exit_code == 0
+    assert "Enter athlete weight in kg" in result.stdout
+    assert "Processed 1 workouts" in result.stdout
+
+def test_zones_command():
+    """Test zones command."""
+    result = runner.invoke(app, ["zones", "--critical-power", "250"])
+    
+    assert result.exit_code == 0
+    assert "Calculating training zones..." in result.stdout
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_weight_prompt_invalid_input(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test analyze command with invalid weight prompt input."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.csv"
+    test_file.write_text("test data")
+    
+    # Mock service response
+    mock_workout = WorkoutData(
+        id="test123",
+        date="2024-02-06T12:00:00",
+        distance=10000.0,
+        duration=3600,
+        average_pace=360.0,
+        average_power=250.0,
+        total_elevation_gain=100.0,
+        heart_rate=165.0,
+        cadence=170.0
+    )
+    mock_service_instance = Mock()
+    mock_service_instance.process_file.return_value = [mock_workout]
+    mock_service.return_value = mock_service_instance
+    
+    # Run command without weight parameter and provide invalid input first
+    result = runner.invoke(app, ["analyze", str(test_file)], input="-1.0\n70.0\n")
+    
+    assert result.exit_code == 0
+    assert "Enter athlete weight in kg" in result.stdout
+    assert "Weight must be greater than 0" in result.stdout
+    assert "Processed 1 workouts" in result.stdout
+
+def test_main():
+    """Test main entry point."""
+    with patch('sys.argv', ['runctl', '--help']):
+        with pytest.raises(SystemExit) as excinfo:
+            app()
+        assert excinfo.value.code == 0
+
+@patch('src.cli.StrydDataIngestionService')
+@patch('src.cli.S3Storage')
+@patch('src.cli.StrydDataValidator')
+def test_analyze_command_weight_prompt_none_input(mock_validator, mock_storage, mock_service, tmp_path):
+    """Test analyze command with None weight prompt input."""
+    # Create a test file
+    test_file = tmp_path / "test_workout.csv"
+    test_file.write_text("test data")
+    
+    # Mock service response
+    mock_workout = WorkoutData(
+        id="test123",
+        date="2024-02-06T12:00:00",
+        distance=10000.0,
+        duration=3600,
+        average_pace=360.0,
+        average_power=250.0,
+        total_elevation_gain=100.0,
+        heart_rate=165.0,
+        cadence=170.0
+    )
+    mock_service_instance = Mock()
+    mock_service_instance.process_file.return_value = [mock_workout]
+    mock_service.return_value = mock_service_instance
+    
+    # Mock validate_weight to return None once
+    original_validate = validate_weight
+    validation_count = 0
+    def mock_validate(value):
+        nonlocal validation_count
+        if validation_count == 0:
+            validation_count += 1
+            return None
+        return original_validate(value)
+    
+    with patch('src.cli.validate_weight', side_effect=mock_validate):
+        result = runner.invoke(app, ["analyze", str(test_file)], input="0.0\n70.0\n")
+    
+    assert result.exit_code == 0
+    assert "Enter athlete weight in kg" in result.stdout
+    assert "Weight must be greater than 0" in result.stdout
+    assert "Processed 1 workouts" in result.stdout
+
+def test_main_entry():
+    """Test main entry point when run as script."""
+    with patch('src.cli.app') as mock_app:
+        with patch('src.cli.__name__', '__main__'):
+            main()
+            mock_app.assert_called_once()

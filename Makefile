@@ -39,11 +39,11 @@ create-bucket:
 test: test-unit test-integration
 
 test-unit:
-	pytest tests/unit -v
+	pytest tests/unit -v --cov=src --cov-report=term-missing
 
 test-integration:
-	pytest tests/integration -v
+	pytest tests/integration -v --cov=src --cov-report=term-missing --cov-append
 
 test-coverage:
-	pytest --cov=src --cov-report=html tests/
+	pytest --cov=src --cov-report=term-missing --cov-report=html tests/
 	@echo "Coverage report generated in htmlcov/index.html"

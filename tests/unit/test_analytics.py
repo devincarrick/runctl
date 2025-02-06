@@ -1,8 +1,7 @@
 """Unit tests for analytics models."""
 
-from datetime import datetime, timedelta
 import pytest
-from pydantic import ValidationError
+from datetime import datetime, timedelta
 
 from src.models.analytics import (
     TimeRange,
@@ -11,83 +10,82 @@ from src.models.analytics import (
     WorkoutZonesSummary,
     WorkoutSummary
 )
-from src.models.workout import WorkoutData
 from src.models.training_zones import TrainingZone, ZoneType
-
+from src.models.workout import WorkoutData
 
 @pytest.fixture
-def sample_workout():
-    """Create a sample workout for testing."""
+def workout_data():
+    """Create sample workout data."""
     return WorkoutData(
-        id="test123",
-        date=datetime.now(),
-        distance=10000.0,  # 10km
-        duration=3600,     # 1 hour
-        average_pace=360.0,  # 6:00 min/km
+        id="test_workout",
+        date=datetime(2024, 2, 1, 12, 0),
+        distance=10000.0,
+        duration=3600,
+        average_pace=360.0,
         average_power=250.0,
         total_elevation_gain=100.0,
         heart_rate=165.0,
-        temperature=20.0,
-        humidity=65.0,
-        cadence=180.0
+        cadence=175.0
     )
 
-
 @pytest.fixture
-def sample_zones():
-    """Create sample training zones for testing."""
-    return [
-        TrainingZone(
-            name="Zone 1",
-            lower_bound=0,
-            upper_bound=200,
-            description="Test zone",
-            zone_type=ZoneType.POWER
-        ),
-        TrainingZone(
-            name="Zone 2",
-            lower_bound=200,
-            upper_bound=400,
-            description="Test zone",
-            zone_type=ZoneType.POWER
-        )
-    ]
+def training_zone():
+    """Create sample training zone."""
+    return TrainingZone(
+        name="Threshold",
+        lower_bound=225.0,
+        upper_bound=275.0,
+        description="Threshold zone",
+        zone_type=ZoneType.POWER
+    )
 
+def test_time_range_enum():
+    """Test TimeRange enum values."""
+    assert TimeRange.WEEK == "week"
+    assert TimeRange.MONTH == "month"
+    assert TimeRange.YEAR == "year"
+    assert TimeRange.ALL == "all"
 
 def test_workout_trend_validation():
-    """Test WorkoutTrend validation and calculations."""
+    """Test WorkoutTrend validation."""
     # Valid trend
     trend = WorkoutTrend(
         start_date=datetime(2024, 1, 1),
         end_date=datetime(2024, 1, 31),
         time_range=TimeRange.MONTH,
-        total_workouts=20,
-        total_distance=200.5,
-        total_duration=72000,
+        total_workouts=10,
+        total_distance=100.0,
+        total_duration=36000,
         average_power=250.0,
-        average_heart_rate=155.0,
+        average_heart_rate=160.0,
         power_trend=2.5,
         pace_trend=-0.5
     )
-    assert trend.time_range == TimeRange.MONTH
-    assert trend.total_workouts == 20
+    assert trend.total_workouts == 10
     
-    # Invalid dates (end before start)
-    with pytest.raises(ValidationError):
+    # Test end_date validation
+    with pytest.raises(ValueError, match="end_date must be after start_date"):
         WorkoutTrend(
             start_date=datetime(2024, 1, 31),
             end_date=datetime(2024, 1, 1),
             time_range=TimeRange.MONTH,
-            total_workouts=20,
-            total_distance=200.5,
-            total_duration=72000
+            total_workouts=10,
+            total_distance=100.0,
+            total_duration=36000
         )
 
-
-def test_zone_analysis(sample_zones):
-    """Test ZoneAnalysis calculations."""
+def test_zone_analysis():
+    """Test ZoneAnalysis model."""
+    zone = TrainingZone(
+        name="Threshold",
+        lower_bound=225.0,
+        upper_bound=275.0,
+        description="Threshold zone",
+        zone_type=ZoneType.POWER
+    )
+    
     analysis = ZoneAnalysis(
-        zone=sample_zones[0],
+        zone=zone,
         time_in_zone=3600,  # 1 hour
         percentage_in_zone=50.0
     )
@@ -95,84 +93,108 @@ def test_zone_analysis(sample_zones):
     assert analysis.time_in_zone_formatted == "1:00:00"
     assert analysis.percentage_in_zone == 50.0
 
-
-def test_workout_zones_summary(sample_zones):
-    """Test WorkoutZonesSummary calculations."""
+def test_workout_zones_summary():
+    """Test WorkoutZonesSummary model."""
+    zone1 = TrainingZone(
+        name="Easy",
+        lower_bound=150.0,
+        upper_bound=200.0,
+        description="Easy zone",
+        zone_type=ZoneType.POWER
+    )
+    zone2 = TrainingZone(
+        name="Threshold",
+        lower_bound=225.0,
+        upper_bound=275.0,
+        description="Threshold zone",
+        zone_type=ZoneType.POWER
+    )
+    
+    analysis1 = ZoneAnalysis(
+        zone=zone1,
+        time_in_zone=2700,  # 45 minutes
+        percentage_in_zone=0.0  # Will be calculated
+    )
+    analysis2 = ZoneAnalysis(
+        zone=zone2,
+        time_in_zone=900,  # 15 minutes
+        percentage_in_zone=0.0  # Will be calculated
+    )
+    
     summary = WorkoutZonesSummary(
-        workout_id="test123",
+        workout_id="test_workout",
         zone_type=ZoneType.POWER,
-        total_duration=7200,  # 2 hours
-        zone_analysis=[
-            ZoneAnalysis(
-                zone=sample_zones[0],
-                time_in_zone=3600,
-                percentage_in_zone=0  # Will be calculated
-            ),
-            ZoneAnalysis(
-                zone=sample_zones[1],
-                time_in_zone=3600,
-                percentage_in_zone=0  # Will be calculated
-            )
-        ]
+        total_duration=3600,
+        zone_analysis=[analysis1, analysis2]
     )
     
     summary.calculate_percentages()
-    assert all(za.percentage_in_zone == 50.0 for za in summary.zone_analysis)
+    assert analysis1.percentage_in_zone == 75.0
+    assert analysis2.percentage_in_zone == 25.0
 
-
-def test_workout_summary_intensity(sample_workout, sample_zones):
-    """Test WorkoutSummary intensity score calculations."""
-    # Create power-based summary
-    power_summary = WorkoutSummary(
-        workout=sample_workout,
-        power_zones=WorkoutZonesSummary(
-            workout_id=sample_workout.id,
-            zone_type=ZoneType.POWER,
-            total_duration=3600,
-            zone_analysis=[
-                ZoneAnalysis(
-                    zone=sample_zones[0],
-                    time_in_zone=1800,
-                    percentage_in_zone=50
-                ),
-                ZoneAnalysis(
-                    zone=sample_zones[1],
-                    time_in_zone=1800,
-                    percentage_in_zone=50
-                )
-            ]
-        )
+def test_workout_summary(workout_data, training_zone):
+    """Test WorkoutSummary model."""
+    zone_analysis = ZoneAnalysis(
+        zone=training_zone,
+        time_in_zone=3600,
+        percentage_in_zone=100.0
     )
     
-    power_summary.calculate_intensity_score()
-    assert power_summary.intensity_score is not None
-    assert 0 <= power_summary.intensity_score <= 100
-    assert power_summary.recovery_time in [4, 12, 24, 36, 48]
-    
-    # Create heart rate-based summary
-    hr_summary = WorkoutSummary(
-        workout=sample_workout,
-        heart_rate_zones=WorkoutZonesSummary(
-            workout_id=sample_workout.id,
-            zone_type=ZoneType.HEART_RATE,
-            total_duration=3600,
-            zone_analysis=[
-                ZoneAnalysis(
-                    zone=TrainingZone(
-                        name="Zone 1",
-                        lower_bound=60,
-                        upper_bound=200,
-                        description="Test zone",
-                        zone_type=ZoneType.HEART_RATE
-                    ),
-                    time_in_zone=3600,
-                    percentage_in_zone=100
-                )
-            ]
-        )
+    power_zones = WorkoutZonesSummary(
+        workout_id=workout_data.id,
+        zone_type=ZoneType.POWER,
+        total_duration=workout_data.duration,
+        zone_analysis=[zone_analysis]
     )
     
-    hr_summary.calculate_intensity_score()
-    assert hr_summary.intensity_score is not None
-    assert 0 <= hr_summary.intensity_score <= 100
-    assert hr_summary.recovery_time in [4, 12, 24, 36, 48] 
+    summary = WorkoutSummary(
+        workout=workout_data,
+        power_zones=power_zones
+    )
+    
+    # Test intensity score calculation with power data
+    summary.calculate_intensity_score()
+    assert summary.intensity_score is not None
+    assert 0 <= summary.intensity_score <= 100
+    assert summary.recovery_time in [4, 12, 24, 36, 48]
+
+def test_workout_summary_heart_rate(workout_data):
+    """Test WorkoutSummary with heart rate data."""
+    hr_zone = TrainingZone(
+        name="Zone 4",
+        lower_bound=150.0,
+        upper_bound=170.0,
+        description="Hard aerobic activity",
+        zone_type=ZoneType.HEART_RATE
+    )
+    
+    zone_analysis = ZoneAnalysis(
+        zone=hr_zone,
+        time_in_zone=3600,
+        percentage_in_zone=100.0
+    )
+    
+    hr_zones = WorkoutZonesSummary(
+        workout_id=workout_data.id,
+        zone_type=ZoneType.HEART_RATE,
+        total_duration=workout_data.duration,
+        zone_analysis=[zone_analysis]
+    )
+    
+    summary = WorkoutSummary(
+        workout=workout_data,
+        heart_rate_zones=hr_zones
+    )
+    
+    # Test intensity score calculation with heart rate data
+    summary.calculate_intensity_score()
+    assert summary.intensity_score is not None
+    assert 0 <= summary.intensity_score <= 100
+    assert summary.recovery_time in [4, 12, 24, 36, 48]
+
+def test_workout_summary_no_zones(workout_data):
+    """Test WorkoutSummary with no zone data."""
+    summary = WorkoutSummary(workout=workout_data)
+    summary.calculate_intensity_score()
+    assert summary.intensity_score is None
+    assert summary.recovery_time is None 
