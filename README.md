@@ -51,3 +51,13 @@ docker-compose up -d
 ```bash
 pytest
 ```
+## Environment Setup
+
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update `.env` with your actual API keys
+3. Never commit `.env` to version control
+4. For local overrides, use `.env.local`

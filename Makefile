@@ -3,7 +3,7 @@
 .PHONY: install start stop restart logs init-local check-health start-local stop-local create-bucket test test-unit test-integration test-coverage
 
 install:
-	pip install -r requirements.txt
+	uv pip install -r requirements.txt
 
 start:
 	docker-compose up -d
@@ -36,7 +36,7 @@ stop-local:
 create-bucket:
 	awslocal s3 mb s3://runctl-raw-data || true
 
-test: test-unit test-integration
+test: test-unit test-integration test-coverage
 
 test-unit:
 	pytest tests/unit -v --cov=src --cov-report=term-missing

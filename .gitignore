@@ -64,3 +64,8 @@ logs/
 
 # Project specific
 docs/personal/
+docs/scratchpad.md
+
+# Cursor Development Files
+.cursorrules
+tools/

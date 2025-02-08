@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, List, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import math
 
 from .workout import WorkoutData
@@ -41,8 +41,8 @@ class WorkoutTrend(BaseModel):
             raise ValueError('end_date must be after start_date')
         return v
     
-    model_config = {
-        "json_schema_extra": {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "start_date": "2024-01-01T00:00:00",
                 "end_date": "2024-01-31T23:59:59",
@@ -56,7 +56,7 @@ class WorkoutTrend(BaseModel):
                 "pace_trend": -0.5
             }
         }
-    }
+    )
 
 
 class ZoneAnalysis(BaseModel):
