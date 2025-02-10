@@ -10,6 +10,8 @@ python-dotenv==1.0.0
 rich==13.7.0
 loguru==0.7.2
 aiohttp==3.9.3
+aioredis==2.0.1  # Redis async client for caching
+tenacity==8.2.3  # Retry mechanism with exponential backoff
 
 # Testing dependencies
 unittest2>=1.1.0
