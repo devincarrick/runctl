@@ -7,7 +7,7 @@ from datetime import datetime
 import aioredis
 from loguru import logger
 
-from src.services.garmin.garth_client import GarthClient
+from src.services.garmin.interface import GarminClientInterface
 from src.infra.monitoring.metrics import metrics
 
 
@@ -17,7 +17,7 @@ class HealthCheck:
     def __init__(
         self,
         redis_client: aioredis.Redis,
-        garmin_client: GarthClient
+        garmin_client: GarminClientInterface
     ) -> None:
         """Initialize the health check.
         

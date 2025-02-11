@@ -11,8 +11,6 @@ import aiohttp
 import garth
 from pydantic import BaseModel, Field
 
-from src.services.garmin.interface import GarminClientInterface
-
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +66,7 @@ class RateLimiter:
             self.last_request = datetime.now()
 
 
-class GarthClient(GarminClientInterface):
+class GarthClient:
     """Garmin Connect client using garth library."""
 
     def __init__(
@@ -164,17 +162,6 @@ class GarthClient(GarminClientInterface):
         if self._session and not self._session.closed:
             await self._session.close()
 
-    async def check_auth(self) -> None:
-        """Check authentication status."""
-        if not self._client or not self._session:
-            raise ValueError("Client is not connected")
-
-        try:
-            await self._client.oauth2_token_refresh()
-        except Exception as e:
-            logger.error("Authentication check failed: %s", e)
-            raise ValueError("Authentication check failed") from e
-
     async def get(self, endpoint: str, **kwargs: Any) -> Dict[str, Any]:
         """Make a GET request to Garmin Connect API.
 
@@ -213,75 +200,75 @@ class GarthClient(GarminClientInterface):
 
     async def get_sleep_data(
         self,
-        target_date: datetime,
+        start_date: datetime,
         end_date: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Get sleep data from Garmin Connect.
 
         Args:
-            target_date: Target date for sleep data.
-            end_date: End date for sleep data. If None, defaults to target_date + 1 day.
+            start_date: Start date for sleep data.
+            end_date: End date for sleep data. If None, defaults to start_date + 1 day.
 
         Returns:
             Sleep data from Garmin Connect.
         """
         if end_date is None:
-            end_date = target_date + timedelta(days=1)
+            end_date = start_date + timedelta(days=1)
 
         return await self.get(
             "proxy/wellness-service/wellness/dailySleepData",
             params={
-                "startDate": target_date.strftime("%Y-%m-%d"),
+                "startDate": start_date.strftime("%Y-%m-%d"),
                 "endDate": end_date.strftime("%Y-%m-%d"),
             },
         )
 
     async def get_stress_data(
         self,
-        target_date: datetime,
+        start_date: datetime,
         end_date: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Get stress data from Garmin Connect.
 
         Args:
-            target_date: Target date for stress data.
-            end_date: End date for stress data. If None, defaults to target_date + 1 day.
+            start_date: Start date for stress data.
+            end_date: End date for stress data. If None, defaults to start_date + 1 day.
 
         Returns:
             Stress data from Garmin Connect.
         """
         if end_date is None:
-            end_date = target_date + timedelta(days=1)
+            end_date = start_date + timedelta(days=1)
 
         return await self.get(
             "proxy/wellness-service/wellness/dailyStress",
             params={
-                "startDate": target_date.strftime("%Y-%m-%d"),
+                "startDate": start_date.strftime("%Y-%m-%d"),
                 "endDate": end_date.strftime("%Y-%m-%d"),
             },
         )
 
     async def get_body_battery_data(
         self,
-        target_date: datetime,
+        start_date: datetime,
         end_date: Optional[datetime] = None,
     ) -> Dict[str, Any]:
         """Get Body Battery data from Garmin Connect.
 
         Args:
-            target_date: Target date for Body Battery data.
-            end_date: End date for Body Battery data. If None, defaults to target_date + 1 day.
+            start_date: Start date for Body Battery data.
+            end_date: End date for Body Battery data. If None, defaults to start_date + 1 day.
 
         Returns:
             Body Battery data from Garmin Connect.
         """
         if end_date is None:
-            end_date = target_date + timedelta(days=1)
+            end_date = start_date + timedelta(days=1)
 
         return await self.get(
             "proxy/wellness-service/wellness/dailyBodyBattery",
             params={
-                "startDate": target_date.strftime("%Y-%m-%d"),
+                "startDate": start_date.strftime("%Y-%m-%d"),
                 "endDate": end_date.strftime("%Y-%m-%d"),
             },
         ) 
