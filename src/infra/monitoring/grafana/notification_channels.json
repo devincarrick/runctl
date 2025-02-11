@@ -1,0 +1,109 @@
+{
+  "notifications": [
+    {
+      "name": "Email Alerts",
+      "type": "email",
+      "settings": {
+        "addresses": "${ALERT_EMAIL_ADDRESSES}",
+        "singleEmail": true
+      },
+      "disableResolveMessage": false,
+      "frequency": "5m",
+      "conditions": [
+        {
+          "evaluator": {
+            "params": [1],
+            "type": "gt"
+          },
+          "operator": {
+            "type": "and"
+          },
+          "query": {
+            "params": ["A", "5m", "now"]
+          },
+          "reducer": {
+            "params": [],
+            "type": "avg"
+          },
+          "type": "query"
+        }
+      ]
+    },
+    {
+      "name": "Slack Critical",
+      "type": "slack",
+      "settings": {
+        "url": "${SLACK_WEBHOOK_URL}",
+        "recipient": "#runctl-alerts",
+        "mentionChannel": "here",
+        "mentionUsers": "${SLACK_ONCALL_USERS}",
+        "username": "RunCTL Monitor"
+      },
+      "disableResolveMessage": false,
+      "frequency": "5m",
+      "conditions": [
+        {
+          "evaluator": {
+            "params": [1],
+            "type": "gt"
+          },
+          "operator": {
+            "type": "and"
+          },
+          "query": {
+            "params": ["A", "5m", "now"]
+          },
+          "reducer": {
+            "params": [],
+            "type": "avg"
+          },
+          "type": "query"
+        }
+      ],
+      "filters": [
+        {
+          "type": "label",
+          "key": "severity",
+          "value": "critical"
+        }
+      ]
+    },
+    {
+      "name": "Slack Warnings",
+      "type": "slack",
+      "settings": {
+        "url": "${SLACK_WEBHOOK_URL}",
+        "recipient": "#runctl-alerts",
+        "username": "RunCTL Monitor"
+      },
+      "disableResolveMessage": false,
+      "frequency": "15m",
+      "conditions": [
+        {
+          "evaluator": {
+            "params": [1],
+            "type": "gt"
+          },
+          "operator": {
+            "type": "and"
+          },
+          "query": {
+            "params": ["A", "5m", "now"]
+          },
+          "reducer": {
+            "params": [],
+            "type": "avg"
+          },
+          "type": "query"
+        }
+      ],
+      "filters": [
+        {
+          "type": "label",
+          "key": "severity",
+          "value": "warning"
+        }
+      ]
+    }
+  ]
+}

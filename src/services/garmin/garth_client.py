@@ -9,6 +9,7 @@ from .config import get_settings
 from .rate_limit import rate_limit
 from .cache import cached, CacheKey, CacheTTL
 from .retry import with_retry, handle_retry_errors
+from .metrics_decorator import track_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,7 @@ class GarthClient:
         pass
     
     @handle_retry_errors
+    @track_metrics("init")
     async def init_client(self):
         """Initialize the garth client and authenticate."""
         if not self._initialized:
@@ -52,6 +54,7 @@ class GarthClient:
     
     @rate_limit("auth", tokens=5)  # Higher token cost for authentication
     @with_retry(max_retries=2)  # Fewer retries for auth
+    @track_metrics("auth")
     async def _authenticate(self):
         """Authenticate with Garmin Connect using email and password."""
         try:
@@ -68,6 +71,7 @@ class GarthClient:
     @cached(CacheKey.SLEEP, ttl=CacheTTL.SLEEP)
     @with_retry()
     @handle_retry_errors
+    @track_metrics("sleep")
     async def get_sleep_data(self, *, target_date: datetime, user_id: str = "default"):
         """
         Fetch sleep data for a specific date.
@@ -97,6 +101,7 @@ class GarthClient:
     @rate_limit("sleep", tokens=2)  # Higher token cost for date range
     @with_retry()
     @handle_retry_errors
+    @track_metrics("sleep_range")
     async def get_sleep_data_range(
         self, 
         start_date: datetime,
@@ -135,6 +140,7 @@ class GarthClient:
     @cached(CacheKey.STRESS, ttl=CacheTTL.STRESS)
     @with_retry()
     @handle_retry_errors
+    @track_metrics("stress")
     async def get_stress_data(self, *, target_date: datetime, user_id: str = "default"):
         """
         Fetch stress data for a specific date.
@@ -164,6 +170,7 @@ class GarthClient:
     @rate_limit("stress", tokens=2)  # Higher token cost for date range
     @with_retry()
     @handle_retry_errors
+    @track_metrics("stress_range")
     async def get_stress_data_range(
         self, 
         start_date: datetime,
@@ -202,6 +209,7 @@ class GarthClient:
     @cached(CacheKey.BODY_BATTERY, ttl=CacheTTL.BODY_BATTERY)
     @with_retry()
     @handle_retry_errors
+    @track_metrics("body_battery")
     async def get_body_battery_data(self, *, target_date: datetime, user_id: str = "default"):
         """
         Fetch Body Battery data for a specific date.
@@ -231,6 +239,7 @@ class GarthClient:
     @rate_limit("body_battery", tokens=2)  # Higher token cost for date range
     @with_retry()
     @handle_retry_errors
+    @track_metrics("body_battery_range")
     async def get_body_battery_data_range(
         self, 
         start_date: datetime,

@@ -9,6 +9,8 @@ from datetime import datetime
 import aioredis
 from pydantic import BaseModel
 
+from .cache_metrics import track_cache_metrics, track_cache_size
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T')
@@ -64,6 +66,7 @@ class Cache:
             self._redis = None
             logger.info("Disconnected from Redis")
     
+    @track_cache_metrics("get")
     async def get(self, key: str) -> Optional[Any]:
         """
         Get value from cache.
@@ -91,6 +94,7 @@ class Cache:
             logger.error(f"Failed to get from cache: {e}")
             return None
     
+    @track_cache_metrics("set")
     async def set(
         self,
         key: str,
@@ -112,6 +116,9 @@ class Cache:
             await self.connect()
         
         try:
+            # Track value size
+            track_cache_size(key, value)
+            
             # Convert to JSON
             data = json.dumps(value)
             
@@ -129,6 +136,7 @@ class Cache:
             logger.error(f"Failed to set in cache: {e}")
             return False
     
+    @track_cache_metrics("delete")
     async def delete(self, key: str) -> bool:
         """
         Delete value from cache.

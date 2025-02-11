@@ -1,0 +1,123 @@
+{
+  "groups": [
+    {
+      "name": "API Performance Alerts",
+      "rules": [
+        {
+          "name": "High API Latency",
+          "condition": "rate(garmin_api_latency_seconds_sum[5m]) / rate(garmin_api_latency_seconds_count[5m]) > 2",
+          "for": "5m",
+          "labels": {
+            "severity": "warning",
+            "category": "performance"
+          },
+          "annotations": {
+            "summary": "High API latency detected",
+            "description": "API endpoint {{ $labels.endpoint }} has high latency (>2s) for the last 5 minutes"
+          }
+        },
+        {
+          "name": "High Error Rate",
+          "condition": "sum(rate(garmin_api_errors_total[5m])) / sum(rate(garmin_api_requests_total[5m])) > 0.05",
+          "for": "5m",
+          "labels": {
+            "severity": "critical",
+            "category": "reliability"
+          },
+          "annotations": {
+            "summary": "High API error rate detected",
+            "description": "API error rate is above 5% for the last 5 minutes"
+          }
+        },
+        {
+          "name": "Low Rate Limit",
+          "condition": "garmin_rate_limit_remaining < 10",
+          "for": "1m",
+          "labels": {
+            "severity": "warning",
+            "category": "rate_limits"
+          },
+          "annotations": {
+            "summary": "Low rate limit remaining",
+            "description": "Rate limit for {{ $labels.endpoint }} is below 10 requests"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cache Performance Alerts",
+      "rules": [
+        {
+          "name": "High Cache Miss Rate",
+          "condition": "rate(garmin_cache_misses_total[5m]) / (rate(garmin_cache_hits_total[5m]) + rate(garmin_cache_misses_total[5m])) > 0.20",
+          "for": "10m",
+          "labels": {
+            "severity": "warning",
+            "category": "performance"
+          },
+          "annotations": {
+            "summary": "High cache miss rate detected",
+            "description": "Cache miss rate is above 20% for the last 10 minutes"
+          }
+        },
+        {
+          "name": "High Cache Latency",
+          "condition": "rate(garmin_cache_latency_seconds_sum[5m]) / rate(garmin_cache_latency_seconds_count[5m]) > 0.1",
+          "for": "5m",
+          "labels": {
+            "severity": "warning",
+            "category": "performance"
+          },
+          "annotations": {
+            "summary": "High cache latency detected",
+            "description": "Cache operations are taking longer than 100ms on average"
+          }
+        },
+        {
+          "name": "Large Cache Values",
+          "condition": "rate(garmin_cache_value_size_bytes_sum[5m]) / rate(garmin_cache_value_size_bytes_count[5m]) > 262144",
+          "for": "15m",
+          "labels": {
+            "severity": "warning",
+            "category": "resource_usage"
+          },
+          "annotations": {
+            "summary": "Large cache values detected",
+            "description": "Average cache value size is above 256KB for {{ $labels.key }}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Health Alerts",
+      "rules": [
+        {
+          "name": "Component Down",
+          "condition": "up == 0",
+          "for": "1m",
+          "labels": {
+            "severity": "critical",
+            "category": "availability"
+          },
+          "annotations": {
+            "summary": "Component is down",
+            "description": "{{ $labels.job }} is not responding"
+          }
+        },
+        {
+          "name": "High Retry Rate",
+          "condition": "sum(rate(garmin_retry_attempts_total[5m])) > 1",
+          "for": "5m",
+          "labels": {
+            "severity": "warning",
+            "category": "reliability"
+          },
+          "annotations": {
+            "summary": "High retry rate detected",
+            "description": "Multiple retry attempts for {{ $labels.endpoint }} in the last 5 minutes"
+          }
+        }
+      ]
+    }
+  ]
+}
