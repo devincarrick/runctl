@@ -1,9 +1,12 @@
 ---
-description:
-globs:
+description: Guidelines for maintaining project documentation
+globs: docs/**/*.md
 ---
 
-# Your rule content
+# Project Documentation Guidelines
 
-- You can @ files here
-- You can use markdown but dont have to
+- Keep documentation up to date with code changes
+- Follow ADR format for architectural decisions
+- Use markdown for all documentation
+- Include code examples where relevant
+- Document all configuration options

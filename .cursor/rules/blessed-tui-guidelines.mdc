@@ -1,9 +1,12 @@
 ---
-description:
-globs:
+description: Guidelines for implementing TUI components using blessed
+globs: **/*.py
 ---
 
-# Your rule content
+# Blessed TUI Guidelines
 
-- You can @ files here
-- You can use markdown but dont have to
+- Use context managers for terminal modes
+- Implement proper error handling for terminal resize
+- Use Terminal.height and Terminal.width for responsive layouts
+- Implement proper cleanup on exit
+- Use Terminal.hidden_cursor() during updates
