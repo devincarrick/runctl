@@ -2,14 +2,16 @@
 
 A Terminal User Interface (TUI) application for analyzing running metrics, managing training data, and tracking fitness progress.
 
+> **Note**: This project is currently in active development. Features are being implemented according to the [development plan](docs/development_plan.md).
+
 ## Features
 
 - CSV running data analysis
-- Garmin Connect integration
-- Training metrics visualization
-- Equipment tracking
-- Health metrics monitoring
-- Performance analytics
+- Garmin Connect integration (planned)
+- Training metrics visualization (in progress)
+- Equipment tracking (planned)
+- Health metrics monitoring (planned)
+- Performance analytics (in progress)
 
 ## Installation
 
@@ -43,7 +45,7 @@ pip install -r requirements-dev.txt
 pytest
 
 # Run linting
-pylint runctl
+ruff check runctl
 ```
 
 ## Contributing
