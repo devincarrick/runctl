@@ -32,7 +32,7 @@ pip install -r requirements.txt
 
 ```bash
 # Run the application
-python -m runctl
+python3 -m runctl
 ```
 
 ## Development
