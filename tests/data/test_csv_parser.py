@@ -1,10 +1,9 @@
 """Tests for CSV parsing and validation."""
 import csv
+import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import tempfile
 
-import pandas as pd
 import pytest
 import time_machine
 

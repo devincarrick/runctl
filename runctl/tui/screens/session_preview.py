@@ -1,245 +1,231 @@
-"""Session preview screen for RunCTL."""
-from typing import List
+"""Session preview screen for displaying running session details."""
+from typing import List, Optional
 
 from blessed import Terminal
 from blessed.keyboard import Keystroke
 
-from ...data.models import RunningSession
-from ...data.stats import SessionStats, calculate_stats
-from ..components.base import Screen
+from ...data.models import RunningMetrics
+from ...data.stats import calculate_stats
+from ..navigation import Screen
 
 
 class SessionPreviewScreen(Screen):
-    """Screen for detailed session preview."""
-
-    def __init__(self, terminal: Terminal, sessions: List[RunningSession]):
+    """Screen for previewing running session details."""
+    
+    def __init__(self, term: Terminal, sessions: List[RunningMetrics]) -> None:
         """Initialize the session preview screen.
         
         Args:
-            terminal: Blessed Terminal instance
-            sessions: List of running sessions to preview
+            term: Terminal instance
+            sessions: List of running sessions to display
         """
-        super().__init__(terminal)
+        super().__init__(term)
         self.sessions = sessions
-        self.current_session_idx = 0
+        self.current_session = sessions[0] if sessions else None
         self.scroll_offset = 0
-        self.status_message = ''
         self.show_stats = False
-        self._stats: SessionStats = calculate_stats(sessions) if sessions else None
-
-    @property
-    def current_session(self) -> RunningSession:
-        """Get the currently selected session."""
-        return self.sessions[self.current_session_idx]
-
-    def handle_input(self, key: Keystroke) -> bool:
-        """Handle user input.
+        self._stats = calculate_stats(sessions) if sessions else None
+    
+    def render(self) -> None:
+        """Render the session preview screen."""
+        self.term.clear()
         
-        Args:
-            key: The pressed key
-            
-        Returns:
-            bool: True if the screen should continue, False to exit
-        """
-        if key.name == 'KEY_LEFT':
-            # Previous session
-            if self.current_session_idx > 0:
-                self.current_session_idx -= 1
-                self.scroll_offset = 0
-        elif key.name == 'KEY_RIGHT':
-            # Next session
-            if self.current_session_idx < len(self.sessions) - 1:
-                self.current_session_idx += 1
-                self.scroll_offset = 0
-        elif key.name == 'KEY_UP':
-            # Scroll up
+        if not self.sessions:
+            print(self.term.center("No sessions to display"))
+            return
+        
+        if self.show_stats:
+            self._render_stats()
+        else:
+            self._render_session()
+        
+        # Print help text at the bottom
+        print(self.term.move_xy(0, self.term.height - 2))
+        print(self.term.center("q: quit | ←/→: prev/next session | ↑/↓: scroll | s: toggle stats"))
+    
+    def _render_stats(self) -> None:
+        """Render session statistics."""
+        if not self._stats:
+            return
+        
+        # Format statistics
+        stats_lines = [
+            "Session Statistics",
+            "-----------------",
+            f"Total Distance: {self._stats.total_distance / 1000:.2f} km",
+            f"Total Duration: {self._format_duration(self._stats.total_duration)}",
+            f"Average Pace: {self._format_pace(self._stats.avg_pace)}",
+            "",
+            "Pace Analysis",
+            "-------------",
+            f"Fastest Pace: {self._format_pace(self._stats.fastest_pace)}",
+            f"Slowest Pace: {self._format_pace(self._stats.slowest_pace)}",
+            "",
+            "Time of Day Distribution",
+            "----------------------",
+            f"Morning Runs: {self._stats.morning_runs}",
+            f"Afternoon Runs: {self._stats.afternoon_runs}",
+            f"Evening Runs: {self._stats.evening_runs}"
+        ]
+        
+        # Center and print each line
+        for i, line in enumerate(stats_lines):
+            print(self.term.move_xy(0, i))
+            print(self.term.center(line))
+    
+    def _render_session(self) -> None:
+        """Render current session details."""
+        if not self.current_session:
+            return
+        
+        # Format session details
+        session_lines = self._get_session_lines()
+        
+        # Apply scroll offset and print visible lines
+        visible_height = self.term.height - 2
+        visible_lines = session_lines[self.scroll_offset:self.scroll_offset + visible_height]
+        for i, line in enumerate(visible_lines):
+            print(self.term.move_xy(0, i))
+            print(self.term.center(line))
+    
+    def handle_input(self, keystroke: Keystroke) -> Optional[Screen]:
+        """Handle input for the session preview screen."""
+        session_lines = self._get_session_lines()
+        visible_height = self.term.height - 2
+        # Calculate max scroll based on the number of lines that can be hidden
+        max_scroll = max(0, len(session_lines) - visible_height)
+        print(
+            f"Lines: {len(session_lines)}, "
+            f"Term height: {self.term.height}, "
+            f"Visible height: {visible_height}, "
+            f"Max scroll: {max_scroll}, "
+            f"Current offset: {self.scroll_offset}"
+        )
+
+        # Handle quit first
+        if str(keystroke) == "q":
+            return None
+
+        # Handle scrolling
+        if keystroke.name == "KEY_UP":
             self.scroll_offset = max(0, self.scroll_offset - 1)
-        elif key.name == 'KEY_DOWN':
-            # Scroll down (limit will be checked in render)
-            self.scroll_offset += 1
-        elif key.name == 's':
-            # Toggle statistics view
+            print(f"After KEY_UP: scroll_offset = {self.scroll_offset}")
+        elif keystroke.name == "KEY_DOWN":
+            if len(session_lines) > visible_height:
+                self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
+            print(f"After KEY_DOWN: scroll_offset = {self.scroll_offset}")
+        
+        # Handle stats toggle
+        elif str(keystroke) == "s":
             self.show_stats = not self.show_stats
             self.scroll_offset = 0
-        elif key.name == 'q':
-            return False
         
-        return True
-
-    def _format_pace(self, seconds_per_km: float) -> str:
-        """Format pace in min:sec/km.
-        
-        Args:
-            seconds_per_km: Pace in seconds per kilometer
+        # Handle navigation only when not in stats view
+        elif not self.show_stats:
+            # Handle session navigation
+            if keystroke.name == "KEY_LEFT" and self.sessions.index(self.current_session) > 0:
+                self.current_session = self.sessions[
+                    self.sessions.index(self.current_session) - 1
+                ]
+                self.scroll_offset = 0
             
+            elif (
+                keystroke.name == "KEY_RIGHT" and 
+                self.sessions.index(self.current_session) < len(self.sessions) - 1
+            ):
+                self.current_session = self.sessions[
+                    self.sessions.index(self.current_session) + 1
+                ]
+                self.scroll_offset = 0
+        
+        return self
+    
+    def _get_session_lines(self) -> List[str]:
+        """Get the list of lines for the current session.
+        
         Returns:
-            str: Formatted pace string
+            List of formatted lines
         """
-        minutes = int(seconds_per_km // 60)
-        seconds = int(seconds_per_km % 60)
-        return f"{minutes}:{seconds:02d}/km"
-
+        if not self.current_session:
+            return []
+        
+        # Base lines that are always present
+        lines = [
+            f"Session {self.sessions.index(self.current_session) + 1} of {len(self.sessions)}",
+            "-" * 40,
+            f"Date: {self.current_session.timestamp.strftime('%Y-%m-%d %H:%M')}",
+            f"Distance: {self.current_session.distance / 1000:.2f} km",
+            f"Duration: {self._format_duration(self.current_session.duration)}",
+            f"Average Pace: {self._format_pace(self.current_session.avg_pace)}",
+            "",
+            "Additional Metrics",
+            "------------------"
+        ]
+        
+        # Add optional metrics
+        if self.current_session.avg_heart_rate is not None:
+            lines.append(
+                f"Average Heart Rate: {self.current_session.avg_heart_rate:.0f} bpm"
+            )
+        
+        if self.current_session.max_heart_rate is not None:
+            lines.append(
+                f"Maximum Heart Rate: {self.current_session.max_heart_rate:.0f} bpm"
+            )
+        
+        if self.current_session.elevation_gain is not None:
+            lines.append(
+                f"Elevation Gain: {self.current_session.elevation_gain:.0f} m"
+            )
+        
+        if self.current_session.calories is not None:
+            lines.append(
+                f"Calories: {self.current_session.calories:.0f} kcal"
+            )
+        
+        if self.current_session.cadence is not None:
+            lines.append(
+                f"Average Cadence: {self.current_session.cadence:.0f} spm"
+            )
+        
+        if self.current_session.temperature is not None:
+            lines.append(
+                f"Temperature: {self.current_session.temperature:.1f}°C"
+            )
+        
+        # Add padding to ensure scrolling is possible
+        current_lines = len(lines)
+        # Add enough padding to ensure we can scroll at least one line
+        padding_needed = max(0, self.term.height + 1)
+        lines.extend([""] * padding_needed)
+        
+        print(f"Base lines: {current_lines}, Padding: {padding_needed}, Total: {len(lines)}")
+        
+        return lines
+    
     def _format_duration(self, seconds: float) -> str:
-        """Format duration in HH:MM:SS.
+        """Format duration in seconds to HH:MM:SS.
         
         Args:
             seconds: Duration in seconds
             
         Returns:
-            str: Formatted duration string
+            Formatted duration string
         """
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        if hours > 0:
-            return f"{hours}:{minutes:02d}:{secs:02d}"
-        return f"{minutes}:{secs:02d}"
-
-    def render(self) -> None:
-        """Render the screen."""
-        with self.terminal.hidden_cursor(), self.terminal.cbreak():
-            # Clear screen
-            print(self.terminal.clear)
+        seconds = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    
+    def _format_pace(self, pace: float) -> str:
+        """Format pace in seconds per kilometer to MM:SS/km.
+        
+        Args:
+            pace: Pace in seconds per kilometer
             
-            if self.show_stats and self._stats:
-                self._render_stats()
-            else:
-                self._render_session()
-            
-            # Footer
-            print(self.terminal.move(self.terminal.height - 3, 0))
-            print('-' * self.terminal.width)
-            if self.status_message:
-                print(self.status_message)
-            
-            # Help text
-            navigation = "←/→: Change session | " if len(self.sessions) > 1 else ""
-            stats_toggle = "s: Toggle stats | "
-            print(f"{navigation}↑/↓: Scroll | {stats_toggle}q: Back")
-
-    def _render_stats(self) -> None:
-        """Render statistics view."""
-        stats = self._stats
-        print(self.terminal.bold("Session Statistics"))
-        print('-' * self.terminal.width)
-        
-        content_lines = []
-        
-        # Distance and time totals
-        content_lines.extend([
-            "Totals:",
-            f"  Distance: {stats.total_distance/1000:.2f} km",
-            f"  Duration: {self._format_duration(stats.total_duration)}",
-            f"  Average Pace: {self._format_pace(stats.avg_pace)}",
-            ""
-        ])
-        
-        # Pace analysis
-        content_lines.extend([
-            "Pace Analysis:",
-            f"  Fastest: {self._format_pace(stats.fastest_pace)}",
-            f"  Slowest: {self._format_pace(stats.slowest_pace)}",
-            ""
-        ])
-        
-        # Time of day distribution
-        total_runs = stats.morning_runs + stats.afternoon_runs + stats.evening_runs
-        if total_runs > 0:
-            morning_pct = (stats.morning_runs / total_runs) * 100
-            afternoon_pct = (stats.afternoon_runs / total_runs) * 100
-            evening_pct = (stats.evening_runs / total_runs) * 100
-            
-            content_lines.extend([
-                "Time of Day:",
-                f"  Morning (before 12:00): {stats.morning_runs} runs ({morning_pct:.1f}%)",
-                f"  Afternoon (12:00-17:00): {stats.afternoon_runs} runs ({afternoon_pct:.1f}%)",
-                f"  Evening (after 17:00): {stats.evening_runs} runs ({evening_pct:.1f}%)",
-                ""
-            ])
-        
-        # Display content with scrolling
-        visible_lines = self.terminal.height - 8
-        max_scroll = max(0, len(content_lines) - visible_lines)
-        self.scroll_offset = min(self.scroll_offset, max_scroll)
-        
-        for line in content_lines[self.scroll_offset:self.scroll_offset + visible_lines]:
-            print(line)
-
-    def _render_session(self) -> None:
-        """Render individual session view."""
-        session = self.current_session
-        metrics = session.metrics
-        print(self.terminal.bold(f"Session Details ({self.current_session_idx + 1}/{len(self.sessions)})"))
-        print(f"ID: {session.id}")
-        print('-' * self.terminal.width)
-        
-        # Basic metrics
-        visible_lines = self.terminal.height - 8
-        content_lines = []
-        
-        # Time and distance
-        content_lines.extend([
-            f"Date: {metrics.timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
-            f"Distance: {metrics.distance/1000:.2f} km",
-            f"Duration: {self._format_duration(metrics.duration)}",
-            f"Avg Pace: {self._format_pace(metrics.avg_pace)}",
-            ""
-        ])
-        
-        # Heart rate data if available
-        if metrics.avg_heart_rate or metrics.max_heart_rate:
-            content_lines.extend([
-                "Heart Rate:",
-                f"  Average: {metrics.avg_heart_rate:.0f} bpm" if metrics.avg_heart_rate else "",
-                f"  Maximum: {metrics.max_heart_rate:.0f} bpm" if metrics.max_heart_rate else "",
-                ""
-            ])
-        
-        # Stryd metrics if available
-        if metrics.power is not None:
-            content_lines.extend([
-                "Power Metrics:",
-                f"  Power: {metrics.power:.1f} W/kg",
-                f"  Form Power: {metrics.form_power:.1f} W/kg" if metrics.form_power else "",
-                f"  Air Power: {metrics.air_power:.1f} W/kg" if metrics.air_power else "",
-                ""
-            ])
-        
-        # Form metrics if available
-        if any([metrics.ground_time, metrics.vertical_oscillation, metrics.cadence]):
-            content_lines.extend([
-                "Form Metrics:",
-                f"  Ground Time: {metrics.ground_time:.0f} ms" if metrics.ground_time else "",
-                f"  Vertical Oscillation: {metrics.vertical_oscillation:.1f} cm" if metrics.vertical_oscillation else "",
-                f"  Cadence: {metrics.cadence:.0f} spm" if metrics.cadence else "",
-                ""
-            ])
-        
-        # Environmental data if available
-        if metrics.elevation or metrics.temperature:
-            content_lines.extend([
-                "Environmental:",
-                f"  Elevation: {metrics.elevation:.1f} m" if metrics.elevation else "",
-                f"  Temperature: {metrics.temperature:.1f}°C" if metrics.temperature else "",
-                f"  Weather: {metrics.weather_condition}" if metrics.weather_condition else "",
-                ""
-            ])
-        
-        # Metadata
-        if session.tags or session.equipment or session.notes:
-            content_lines.extend([
-                "Metadata:",
-                f"  Tags: {', '.join(session.tags)}" if session.tags else "",
-                f"  Equipment: {session.equipment}" if session.equipment else "",
-                f"  Notes: {session.notes}" if session.notes else "",
-                ""
-            ])
-        
-        # Remove empty lines and handle scrolling
-        content_lines = [line for line in content_lines if line]
-        max_scroll = max(0, len(content_lines) - visible_lines)
-        self.scroll_offset = min(self.scroll_offset, max_scroll)
-        
-        # Display visible content
-        for line in content_lines[self.scroll_offset:self.scroll_offset + visible_lines]:
-            print(line) 
+        Returns:
+            Formatted pace string
+        """
+        minutes = int(pace // 60)
+        seconds = int(pace % 60)
+        return f"{minutes:02d}:{seconds:02d}/km" 

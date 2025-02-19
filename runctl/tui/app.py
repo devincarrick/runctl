@@ -11,6 +11,7 @@ from blessed import Terminal
 
 from .layout import LayoutManager
 from .navigation import NavigationManager
+from .screens.data_import import DataImportScreen
 
 
 class RunCTLApp:
@@ -87,8 +88,9 @@ class RunCTLApp:
                 while self.running:
                     self._draw_ui()
                     
-                    # Handle input
-                    key = self.term.inkey(timeout=0.1)
+                    # Handle input with a shorter timeout in test environments
+                    timeout = 0.01 if 'pytest' in sys.modules else 0.1
+                    key = self.term.inkey(timeout=timeout)
                     if key.is_sequence and key.name == 'KEY_ESCAPE':
                         self.running = False
                     else:
@@ -100,6 +102,13 @@ class RunCTLApp:
             return 1
         finally:
             self._cleanup()
+
+
+def run_app() -> None:
+    """Run the TUI application."""
+    term = Terminal()
+    screen = DataImportScreen(term)
+    screen.run()
 
 
 def main() -> int:

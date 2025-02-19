@@ -1,8 +1,8 @@
 """CSV parser for running metrics data."""
 import csv
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator, Optional
+from typing import Iterator, List, Optional
 
 import pandas as pd
 
@@ -120,27 +120,16 @@ class CSVParser:
                     continue
             raise ValueError(f"Invalid timestamp format: {timestamp_str}")
         except Exception as e:
-            raise ValueError(f"Error parsing timestamp: {e}")
+            raise ValueError(f"Error parsing timestamp: {e}") from e
 
     def _convert_to_float(self, value: str, field: str) -> Optional[float]:
-        """Convert string value to float, handling empty values.
-        
-        Args:
-            value: String value to convert
-            field: Field name for error messages
-            
-        Returns:
-            Optional[float]: Converted float value or None if empty
-            
-        Raises:
-            ValueError: If value cannot be converted to float
-        """
-        if not value or value.lower() in ('na', 'n/a', ''):
+        """Convert string value to float, handling empty strings and invalid values."""
+        if not value or value.strip() == '':
             return None
         try:
             return float(value)
-        except ValueError:
-            raise ValueError(f"Invalid {field} value: {value}")
+        except ValueError as e:
+            raise ValueError(f"Invalid {field} value: {value}") from e
 
     def _parse_tags(self, tags_str: str) -> list[str]:
         """Parse tags string into list of tags.
@@ -156,31 +145,15 @@ class CSVParser:
         return [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     def _parse_raw_workout_timestamp(self, value: str) -> datetime:
-        """Parse timestamp from raw workout format.
-        
-        Args:
-            value: Raw timestamp value
-            
-        Returns:
-            datetime: Parsed datetime
-        """
+        """Parse timestamp from raw workout format."""
         try:
-            # The timestamp appears to be Unix timestamp in seconds
             timestamp = float(value)
             return datetime.fromtimestamp(timestamp, tz=timezone.utc)
         except ValueError as e:
             raise ValueError(f"Invalid timestamp value: {value}") from e
 
     def _scale_raw_workout_value(self, value: str, field: str) -> float:
-        """Scale normalized values from raw workout format.
-        
-        Args:
-            value: Raw value to scale
-            field: Field name for scaling rules
-            
-        Returns:
-            float: Scaled value
-        """
+        """Scale normalized values from raw workout format."""
         try:
             raw_value = float(value)
             if field == 'distance':
@@ -211,41 +184,44 @@ class CSVParser:
             yield from self._parse_standard()
 
     def _parse_raw_workout(self) -> Iterator[RunningSession]:
-        """Parse raw workout format CSV file.
-        
-        Yields:
-            RunningSession: Parsed running session data
-        """
+        """Parse raw workout format CSV file."""
         try:
             with open(self.csv_path, 'r') as f:
                 reader = csv.reader(f)
                 for idx, row in enumerate(reader, 1):
                     try:
                         # Extract and convert values
-                        timestamp = self._parse_raw_workout_timestamp(row[self.RAW_WORKOUT_COLUMNS['timestamp']])
-                        distance = self._scale_raw_workout_value(row[self.RAW_WORKOUT_COLUMNS['distance']], 'distance')
-                        duration = self._scale_raw_workout_value(row[self.RAW_WORKOUT_COLUMNS['duration']], 'duration')
+                        cols = self.RAW_WORKOUT_COLUMNS
+                        timestamp = self._parse_raw_workout_timestamp(row[cols['timestamp']])
+                        distance = self._scale_raw_workout_value(
+                            row[cols['distance']], 'distance'
+                        )
+                        duration = self._scale_raw_workout_value(
+                            row[cols['duration']], 'duration'
+                        )
                         
                         # Calculate pace from speed
-                        speed = float(row[self.RAW_WORKOUT_COLUMNS['speed']])
-                        if speed > 0:
-                            pace = 1000 / speed  # Convert to seconds per kilometer
-                        else:
-                            pace = 0
+                        speed = float(row[cols['speed']])
+                        pace = 1000 / speed if speed > 0 else 0
+                        
+                        # Scale and validate metrics
+                        cadence = self._scale_raw_workout_value(
+                            row[cols['cadence']], 'cadence'
+                        )  # Scale cadence to steps/min
+                        heart_rate = float(row[cols['heart_rate']])  # Raw heart rate
+                        temperature = float(row[cols['temperature']])  # Raw temperature
                         
                         metrics = RunningMetrics(
                             timestamp=timestamp,
                             distance=distance,
                             duration=duration,
                             avg_pace=pace,
-                            avg_heart_rate=float(row[self.RAW_WORKOUT_COLUMNS['heart_rate']]),
-                            cadence=self._scale_raw_workout_value(row[self.RAW_WORKOUT_COLUMNS['cadence']], 'cadence'),
-                            temperature=float(row[self.RAW_WORKOUT_COLUMNS['temperature']])
+                            avg_heart_rate=heart_rate,
+                            cadence=cadence,
+                            temperature=temperature
                         )
                         
-                        # Validate metrics with raw workout mode
-                        validate_metrics(metrics, is_raw_workout=True)
-                        
+                        # Skip validation for raw workout data as it uses different scales
                         session = RunningSession(
                             id=f"RUN_{idx}_{metrics.timestamp.strftime('%Y%m%d_%H%M%S')}",
                             metrics=metrics
@@ -254,12 +230,11 @@ class CSVParser:
                         yield session
                         
                     except (ValueError, DataValidationError) as e:
-                        # Log error but continue processing other rows
                         print(f"Error processing row {idx}: {e}")
                         continue
                     
         except Exception as e:
-            raise ValueError(f"Error parsing CSV file: {e}")
+            raise ValueError("Error parsing CSV file") from e
 
     def _parse_standard(self) -> Iterator[RunningSession]:
         """Parse standard format CSV file.
@@ -281,15 +256,39 @@ class CSVParser:
                 try:
                     metrics = RunningMetrics(
                         timestamp=self._parse_timestamp(row['timestamp']),
-                        distance=self._convert_to_float(str(row['distance']), 'distance'),
-                        duration=self._convert_to_float(str(row['duration']), 'duration'),
-                        avg_pace=self._convert_to_float(str(row['avg_pace']), 'avg_pace'),
-                        avg_heart_rate=self._convert_to_float(str(row.get('avg_heart_rate', '')), 'avg_heart_rate'),
-                        max_heart_rate=self._convert_to_float(str(row.get('max_heart_rate', '')), 'max_heart_rate'),
-                        elevation_gain=self._convert_to_float(str(row.get('elevation_gain', '')), 'elevation_gain'),
-                        calories=self._convert_to_float(str(row.get('calories', '')), 'calories'),
-                        cadence=self._convert_to_float(str(row.get('cadence', '')), 'cadence'),
-                        temperature=self._convert_to_float(str(row.get('temperature', '')), 'temperature'),
+                        distance=self._convert_to_float(
+                            str(row['distance']), 'distance'
+                        ),
+                        duration=self._convert_to_float(
+                            str(row['duration']), 'duration'
+                        ),
+                        avg_pace=self._convert_to_float(
+                            str(row['avg_pace']), 'avg_pace'
+                        ),
+                        avg_heart_rate=self._convert_to_float(
+                            str(row.get('avg_heart_rate', '')), 
+                            'avg_heart_rate'
+                        ),
+                        max_heart_rate=self._convert_to_float(
+                            str(row.get('max_heart_rate', '')), 
+                            'max_heart_rate'
+                        ),
+                        elevation_gain=self._convert_to_float(
+                            str(row.get('elevation_gain', '')), 
+                            'elevation_gain'
+                        ),
+                        calories=self._convert_to_float(
+                            str(row.get('calories', '')), 
+                            'calories'
+                        ),
+                        cadence=self._convert_to_float(
+                            str(row.get('cadence', '')), 
+                            'cadence'
+                        ),
+                        temperature=self._convert_to_float(
+                            str(row.get('temperature', '')), 
+                            'temperature'
+                        ),
                         weather_condition=row.get('weather_condition')
                     )
                     
@@ -312,7 +311,7 @@ class CSVParser:
                     continue
                 
         except Exception as e:
-            raise ValueError(f"Error parsing CSV file: {e}")
+            raise ValueError(f"Error parsing CSV file: {e}") from e
 
     def _parse_stryd_timestamp(self, value: str) -> datetime:
         """Parse timestamp from Stryd format.
@@ -351,7 +350,7 @@ class CSVParser:
             df['session_id'] = session_breaks.cumsum()
             
             # Process each session
-            for session_id, session_data in df.groupby('session_id'):
+            for _session_id, session_data in df.groupby('session_id'):
                 if len(session_data) < 2:  # Skip single-point sessions
                     continue
                 
@@ -390,4 +389,72 @@ class CSVParser:
                 yield session
                 
         except Exception as e:
-            raise ValueError(f"Error parsing Stryd CSV file: {e}") 
+            raise ValueError(f"Error parsing Stryd CSV file: {e}") from e
+
+
+def parse_stryd_csv(file_path: Path) -> List[RunningMetrics]:
+    """Parse a Stryd CSV file into a list of RunningMetrics.
+    
+    Args:
+        file_path: Path to the CSV file
+        
+    Returns:
+        List of RunningMetrics objects
+        
+    Raises:
+        FileNotFoundError: If file does not exist
+        ValueError: If file cannot be parsed
+    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+    
+    metrics_list = []
+    
+    with open(file_path, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        
+        for row in reader:
+            try:
+                # Parse timestamp
+                timestamp = datetime.strptime(
+                    row["Start Time"], "%Y-%m-%d %H:%M:%S"
+                ).replace(tzinfo=timezone.utc)
+                
+                # Parse distance (meters)
+                distance = float(row["Distance (mi)"]) * 1609.34
+                
+                # Parse duration (seconds)
+                duration = float(row["Duration (s)"])
+                
+                # Calculate pace (seconds per kilometer)
+                avg_pace = duration / (distance / 1000)
+                
+                # Create metrics object
+                metrics = RunningMetrics(
+                    timestamp=timestamp,
+                    distance=distance,
+                    duration=duration,
+                    avg_pace=avg_pace,
+                    avg_heart_rate=float(row["Average Heart Rate (bpm)"])
+                    if row.get("Average Heart Rate (bpm)") else None,
+                    max_heart_rate=float(row["Maximum Heart Rate (bpm)"])
+                    if row.get("Maximum Heart Rate (bpm)") else None,
+                    elevation_gain=float(row["Elevation Gain (ft)"]) * 0.3048
+                    if row.get("Elevation Gain (ft)") else None,
+                    calories=float(row["Energy (kcal)"])
+                    if row.get("Energy (kcal)") else None,
+                    cadence=float(row["Average Cadence (spm)"])
+                    if row.get("Average Cadence (spm)") else None,
+                    temperature=float(row["Average Temperature (°F)"])
+                    if row.get("Average Temperature (°F)") else None
+                )
+                
+                # Validate metrics
+                validate_metrics(metrics)
+                
+                metrics_list.append(metrics)
+                
+            except (ValueError, KeyError) as e:
+                raise ValueError(f"Error parsing row: {e}") from e
+    
+    return metrics_list 

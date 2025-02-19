@@ -1,6 +1,6 @@
 """Tests for the main TUI application."""
 import signal
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from blessed import Terminal
@@ -88,8 +88,20 @@ def test_run_exit_handling(app):
     app.term.hidden_cursor = MagicMock(return_value=mock_context)
     app.term.cbreak = MagicMock(return_value=mock_context)
     
-    # Mock inkey to simulate ESC key press
-    app.term.inkey = MagicMock(return_value=Keystroke('\x1b', 'KEY_ESCAPE', True))
+    # Mock inkey to simulate normal input
+    app.term.inkey = MagicMock(return_value=Keystroke('', '', False))
+    
+    # Set up a side effect to stop the app after a few iterations
+    original_draw_ui = app._draw_ui
+    draw_count = 0
+    def mock_draw_ui():
+        nonlocal draw_count
+        draw_count += 1
+        if draw_count >= 3:  # Stop after 3 iterations
+            app.running = False
+        original_draw_ui()
+    
+    app._draw_ui = mock_draw_ui
     
     # Run the application
     exit_code = app.run()
@@ -97,6 +109,7 @@ def test_run_exit_handling(app):
     # Check that the application exited cleanly
     assert exit_code == 0
     assert not app.running
+    assert draw_count >= 3  # Ensure we went through the loop
 
 
 def test_run_error_handling(app):

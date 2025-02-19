@@ -3,12 +3,15 @@ Navigation system for the RunCTL TUI.
 
 This module provides navigation and input handling functionality.
 """
-from dataclasses import dataclass
 import sys
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional
 
 from blessed import Terminal
 from blessed.keyboard import Keystroke
+
+__all__ = ["Screen"]
 
 
 @dataclass
@@ -18,6 +21,45 @@ class MenuItem:
     label: str
     shortcut: Optional[str] = None
     handler: Optional[Callable[[], None]] = None
+
+
+class Screen(ABC):
+    """Base class for TUI screens."""
+    
+    def __init__(self, term: Terminal) -> None:
+        """Initialize the screen.
+        
+        Args:
+            term: Terminal instance
+        """
+        self.term = term
+    
+    @abstractmethod
+    def render(self) -> None:
+        """Render the screen."""
+        pass
+    
+    @abstractmethod
+    def handle_input(self, key: Keystroke) -> Optional["Screen"]:
+        """Handle user input.
+        
+        Args:
+            key: The pressed key
+            
+        Returns:
+            The next screen to display, or None to stay on current screen
+        """
+        pass
+    
+    def run(self) -> None:
+        """Run the screen's main loop."""
+        with self.term.hidden_cursor(), self.term.cbreak():
+            current_screen = self
+            
+            while current_screen:
+                current_screen.render()
+                key = self.term.inkey()
+                current_screen = current_screen.handle_input(key)
 
 
 class NavigationManager:

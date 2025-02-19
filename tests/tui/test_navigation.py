@@ -1,5 +1,6 @@
 """Tests for the TUI navigation system."""
 from unittest.mock import MagicMock
+
 import pytest
 from blessed import Terminal
 
