@@ -6,12 +6,20 @@ A Terminal User Interface (TUI) application for analyzing running metrics, manag
 
 ## Features
 
-- CSV running data analysis
-- Garmin Connect integration (planned)
-- Training metrics visualization (in progress)
-- Equipment tracking (planned)
-- Health metrics monitoring (planned)
-- Performance analytics (in progress)
+- ✅ CSV running data analysis
+  - Multiple format support (Standard, Raw workout, Stryd)
+  - Data validation and error handling
+  - Session preview and metrics summary
+  - Basic statistical analysis
+- 🚧 Training metrics visualization (in progress)
+  - Distance and time summaries
+  - Pace distribution
+  - Heart rate zones
+  - Power metrics (Stryd)
+- 📅 Garmin Connect integration (planned)
+- 📅 Equipment tracking (planned)
+- 📅 Health metrics monitoring (planned)
+- 🚧 Performance analytics (in progress)
 
 ## Installation
 
@@ -47,6 +55,18 @@ pytest
 # Run linting
 ruff check runctl
 ```
+
+## Project Status
+
+- ✅ Core TUI Framework
+- ✅ CSV Data Processing
+- ✅ Basic Analytics
+- 🚧 Data Visualization
+- 📅 User Profile Management
+- 📅 Data Persistence
+- 📅 Garmin Integration
+
+See the [development plan](docs/development_plan.md) for detailed progress and upcoming features.
 
 ## Contributing
 
