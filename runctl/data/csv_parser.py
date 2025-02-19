@@ -32,6 +32,30 @@ class CSVParser:
         'resistance': 14
     }
 
+    # Column names for Stryd format
+    STRYD_COLUMNS = {
+        'timestamp': 'Timestamp',
+        'power': 'Power (w/kg)',
+        'form_power': 'Form Power (w/kg)',
+        'air_power': 'Air Power (w/kg)',
+        'watch_speed': 'Watch Speed (m/s)',
+        'stryd_speed': 'Stryd Speed (m/s)',
+        'watch_distance': 'Watch Distance (meters)',
+        'stryd_distance': 'Stryd Distance (meters)',
+        'stiffness': 'Stiffness',
+        'stiffness_kg': 'Stiffness/kg',
+        'ground_time': 'Ground Time (ms)',
+        'cadence': 'Cadence (spm)',
+        'vertical_oscillation': 'Vertical Oscillation (cm)',
+        'watch_elevation': 'Watch Elevation (m)',
+        'stryd_elevation': 'Stryd Elevation (m)',
+        'ground_time_balance': 'Ground Time Balance',
+        'vertical_oscillation_balance': 'Vertical Oscillation Balance',
+        'leg_spring_stiffness_balance': 'Leg Spring Stiffness Balance',
+        'impact_loading_rate_balance': 'Impact Loading Rate Balance',
+        'vertical_ratio': 'Vertical Ratio'
+    }
+
     REQUIRED_COLUMNS = {
         'timestamp',
         'distance',
@@ -57,7 +81,7 @@ class CSVParser:
         
         Args:
             csv_path: Path to the CSV file
-            format_type: Type of CSV format ('standard' or 'raw_workout')
+            format_type: Type of CSV format ('standard' or 'raw_workout' or 'stryd')
             check_exists: Whether to check if the file exists
             
         Raises:
@@ -181,6 +205,8 @@ class CSVParser:
         """
         if self.format_type == 'raw_workout':
             yield from self._parse_raw_workout()
+        elif self.format_type == 'stryd':
+            yield from self._parse_stryd()
         else:
             yield from self._parse_standard()
 
@@ -286,4 +312,82 @@ class CSVParser:
                     continue
                 
         except Exception as e:
-            raise ValueError(f"Error parsing CSV file: {e}") 
+            raise ValueError(f"Error parsing CSV file: {e}")
+
+    def _parse_stryd_timestamp(self, value: str) -> datetime:
+        """Parse timestamp from Stryd format.
+        
+        Args:
+            value: Stryd timestamp value (Unix timestamp in seconds)
+            
+        Returns:
+            datetime: Parsed datetime
+        """
+        try:
+            # Stryd uses Unix timestamp (seconds since epoch)
+            timestamp = float(value)
+            return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        except ValueError as e:
+            raise ValueError(f"Invalid Stryd timestamp value: {value}") from e
+
+    def _parse_stryd(self) -> Iterator[RunningSession]:
+        """Parse Stryd format CSV file.
+        
+        Yields:
+            RunningSession: Parsed running session data
+        """
+        try:
+            df = pd.read_csv(self.csv_path)
+            
+            # Validate required Stryd columns
+            missing_cols = set(self.STRYD_COLUMNS.values()) - set(df.columns)
+            if missing_cols:
+                raise ValueError(f"Missing required Stryd columns: {missing_cols}")
+            
+            # Group data points into sessions (when there's a gap > 5 minutes)
+            df['datetime'] = df[self.STRYD_COLUMNS['timestamp']].apply(self._parse_stryd_timestamp)
+            df['time_diff'] = df['datetime'].diff()
+            session_breaks = df['time_diff'] > pd.Timedelta(minutes=5)
+            df['session_id'] = session_breaks.cumsum()
+            
+            # Process each session
+            for session_id, session_data in df.groupby('session_id'):
+                if len(session_data) < 2:  # Skip single-point sessions
+                    continue
+                
+                # Calculate session metrics
+                start_time = session_data['datetime'].iloc[0]
+                duration = (session_data['datetime'].iloc[-1] - start_time).total_seconds()
+                
+                # Use Stryd distance if available, fall back to watch distance
+                total_distance = session_data[self.STRYD_COLUMNS['stryd_distance']].iloc[-1]
+                if pd.isna(total_distance) or total_distance == 0:
+                    total_distance = session_data[self.STRYD_COLUMNS['watch_distance']].iloc[-1]
+                
+                # Calculate average pace (s/km)
+                avg_speed = total_distance / duration if duration > 0 else 0
+                avg_pace = 1000 / avg_speed if avg_speed > 0 else 0
+                
+                # Create metrics object
+                metrics = RunningMetrics(
+                    timestamp=start_time,
+                    distance=total_distance,
+                    duration=duration,
+                    avg_pace=avg_pace,
+                    cadence=session_data[self.STRYD_COLUMNS['cadence']].mean(),
+                    power=session_data[self.STRYD_COLUMNS['power']].mean(),
+                    ground_time=session_data[self.STRYD_COLUMNS['ground_time']].mean(),
+                    vertical_oscillation=session_data[self.STRYD_COLUMNS['vertical_oscillation']].mean(),
+                    elevation=session_data[self.STRYD_COLUMNS['stryd_elevation']].mean()
+                )
+                
+                # Create session
+                session = RunningSession(
+                    id=f"STRYD_{start_time.strftime('%Y%m%d_%H%M%S')}",
+                    metrics=metrics
+                )
+                
+                yield session
+                
+        except Exception as e:
+            raise ValueError(f"Error parsing Stryd CSV file: {e}") 

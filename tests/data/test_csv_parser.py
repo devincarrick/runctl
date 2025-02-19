@@ -71,6 +71,12 @@ def raw_workout_csv_path():
     Path(f.name).unlink()
 
 
+@pytest.fixture
+def real_workout_path():
+    """Path to the real workout test data."""
+    return Path("data/samples/real_workout_test.csv")
+
+
 def test_csv_parser_initialization(valid_csv_path):
     """Test CSV parser initialization."""
     parser = CSVParser(valid_csv_path)
@@ -244,4 +250,46 @@ def test_parse_tags():
     assert parser._parse_tags('N/A') == []
     assert parser._parse_tags('tag1,tag2') == ['tag1', 'tag2']
     assert parser._parse_tags(' tag1 , tag2 ') == ['tag1', 'tag2']
-    assert parser._parse_tags('tag1,,tag2') == ['tag1', 'tag2'] 
+    assert parser._parse_tags('tag1,,tag2') == ['tag1', 'tag2']
+
+
+def test_parse_real_workout_data(real_workout_path):
+    """Test parsing real workout data from Stryd device."""
+    parser = CSVParser(real_workout_path, format_type='stryd')
+    sessions = list(parser.parse())
+    
+    # We should get at least one session from the data
+    assert len(sessions) > 0
+    
+    # Check the first session
+    session = sessions[0]
+    assert isinstance(session, RunningSession)
+    assert isinstance(session.metrics, RunningMetrics)
+    
+    # Verify metrics from first data point with actual movement
+    # (skipping initial zeros)
+    metrics = session.metrics
+    
+    # Basic metric validation
+    assert metrics.timestamp is not None
+    assert isinstance(metrics.timestamp, datetime)
+    assert metrics.distance > 0
+    assert metrics.duration > 0
+    assert metrics.avg_pace > 0
+    
+    # Stryd-specific metrics
+    assert hasattr(metrics, 'power')
+    assert hasattr(metrics, 'cadence')
+    assert hasattr(metrics, 'ground_time')
+    assert hasattr(metrics, 'vertical_oscillation')
+    
+    # Verify some known values from the sample data
+    assert abs(metrics.cadence - 172) < 5  # Allow small variation due to averaging
+    assert metrics.elevation is not None
+    
+    # Test that we can parse the entire file without errors
+    try:
+        all_sessions = list(parser.parse())
+        assert len(all_sessions) > 0
+    except Exception as e:
+        pytest.fail(f"Failed to parse complete file: {e}") 

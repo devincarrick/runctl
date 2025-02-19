@@ -18,6 +18,21 @@ class RunningMetrics:
     cadence: Optional[float] = None  # steps per minute
     temperature: Optional[float] = None  # in celsius
     weather_condition: Optional[str] = None
+    
+    # Stryd-specific metrics
+    power: Optional[float] = None  # in watts/kg
+    form_power: Optional[float] = None  # in watts/kg
+    air_power: Optional[float] = None  # in watts/kg
+    ground_time: Optional[float] = None  # in milliseconds
+    vertical_oscillation: Optional[float] = None  # in centimeters
+    stiffness: Optional[float] = None  # raw value
+    stiffness_per_kg: Optional[float] = None  # raw value per kg
+    ground_time_balance: Optional[float] = None  # percentage
+    vertical_oscillation_balance: Optional[float] = None  # percentage
+    leg_spring_stiffness_balance: Optional[float] = None  # percentage
+    impact_loading_rate_balance: Optional[float] = None  # percentage
+    vertical_ratio: Optional[float] = None  # ratio
+    elevation: Optional[float] = None  # in meters (from Stryd)
 
 
 @dataclass
