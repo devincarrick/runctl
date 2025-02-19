@@ -81,6 +81,8 @@ def test_screen_initialization(screen, sample_sessions):
     assert screen.current_session_idx == 0
     assert screen.scroll_offset == 0
     assert screen.current_session == sample_sessions[0]
+    assert not screen.show_stats
+    assert screen._stats is not None
 
 
 def test_session_navigation(screen):
@@ -129,11 +131,37 @@ def test_scrolling(screen):
     assert screen.scroll_offset == 0
 
 
+def test_stats_toggle(screen):
+    """Test statistics view toggling."""
+    key_s = MagicMock(spec=Keystroke)
+    key_s.name = 's'
+    
+    assert not screen.show_stats
+    
+    # Toggle stats on
+    assert screen.handle_input(key_s)
+    assert screen.show_stats
+    assert screen.scroll_offset == 0
+    
+    # Toggle stats off
+    assert screen.handle_input(key_s)
+    assert not screen.show_stats
+    assert screen.scroll_offset == 0
+
+
 def test_pace_formatting(screen):
     """Test pace formatting."""
     assert screen._format_pace(300) == "5:00/km"
     assert screen._format_pace(90) == "1:30/km"
     assert screen._format_pace(65) == "1:05/km"
+
+
+def test_duration_formatting(screen):
+    """Test duration formatting."""
+    assert screen._format_duration(3600) == "1:00:00"  # 1 hour
+    assert screen._format_duration(3661) == "1:01:01"  # 1 hour, 1 minute, 1 second
+    assert screen._format_duration(65) == "1:05"       # 1 minute, 5 seconds
+    assert screen._format_duration(45) == "0:45"       # 45 seconds
 
 
 def test_quit(screen):
