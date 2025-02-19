@@ -80,7 +80,6 @@ def test_screen_initialization(screen, sample_sessions):
     """Test screen initialization."""
     assert screen.current_session_idx == 0
     assert screen.scroll_offset == 0
-    assert screen.export_format is None
     assert screen.current_session == sample_sessions[0]
 
 
@@ -128,27 +127,6 @@ def test_scrolling(screen):
     # Can't scroll up past top
     assert screen.handle_input(key_up)
     assert screen.scroll_offset == 0
-
-
-def test_export_format_cycling(screen):
-    """Test cycling through export formats."""
-    key_e = MagicMock(spec=Keystroke)
-    key_e.name = 'e'
-    
-    assert screen.export_format is None
-    
-    # Cycle through formats
-    assert screen.handle_input(key_e)
-    assert screen.export_format == 'csv'
-    
-    assert screen.handle_input(key_e)
-    assert screen.export_format == 'json'
-    
-    assert screen.handle_input(key_e)
-    assert screen.export_format == 'gpx'
-    
-    assert screen.handle_input(key_e)
-    assert screen.export_format is None
 
 
 def test_pace_formatting(screen):

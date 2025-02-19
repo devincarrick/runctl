@@ -1,5 +1,5 @@
 """Session preview screen for RunCTL."""
-from typing import List, Optional
+from typing import List
 
 from blessed import Terminal
 from blessed.keyboard import Keystroke
@@ -22,7 +22,6 @@ class SessionPreviewScreen(Screen):
         self.sessions = sessions
         self.current_session_idx = 0
         self.scroll_offset = 0
-        self.export_format: Optional[str] = None
         self.status_message = ''
 
     @property
@@ -55,37 +54,10 @@ class SessionPreviewScreen(Screen):
         elif key.name == 'KEY_DOWN':
             # Scroll down (limit will be checked in render)
             self.scroll_offset += 1
-        elif key.name == 'e':
-            # Toggle export format
-            formats = [None, 'csv', 'json', 'gpx']
-            current_idx = formats.index(self.export_format)
-            self.export_format = formats[(current_idx + 1) % len(formats)]
-        elif key.name == 'x' and self.export_format:
-            # Export session
-            self._export_session()
         elif key.name == 'q':
             return False
         
         return True
-
-    def _export_session(self) -> None:
-        """Export the current session in the selected format."""
-        try:
-            session = self.current_session
-            filename = f"session_{session.metrics.timestamp.strftime('%Y%m%d_%H%M%S')}"
-            
-            if self.export_format == 'csv':
-                # TODO: Implement CSV export
-                self.status_message = "CSV export not yet implemented"
-            elif self.export_format == 'json':
-                # TODO: Implement JSON export
-                self.status_message = "JSON export not yet implemented"
-            elif self.export_format == 'gpx':
-                # TODO: Implement GPX export
-                self.status_message = "GPX export not yet implemented"
-            
-        except Exception as e:
-            self.status_message = f"Export failed: {e}"
 
     def _format_pace(self, seconds_per_km: float) -> str:
         """Format pace in min:sec/km.
@@ -191,6 +163,5 @@ class SessionPreviewScreen(Screen):
                 print(self.status_message)
             
             # Help text
-            export_status = f" | Export format: {self.export_format or 'none'} (e: change, x: export)" if len(self.sessions) > 1 else ""
             navigation = "←/→: Change session | " if len(self.sessions) > 1 else ""
-            print(f"{navigation}↑/↓: Scroll{export_status} | q: Back") 
+            print(f"{navigation}↑/↓: Scroll | q: Back") 
