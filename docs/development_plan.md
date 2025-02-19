@@ -43,15 +43,36 @@ Estimated Timeline: 2-3 weeks
   - [x] Stryd-specific metrics
   - [x] Session metadata
 - [x] Implement basic error handling
-- [ ] Add data import UI
-- [ ] Create data preview component
+- [x] Add data import UI
+  - [x] File browser component
+  - [x] Format selection
+  - [x] Data preview
+  - [x] Error handling
+- [x] Create data preview component
+  - [x] Detailed session view
+  - [x] Metrics summary
+  - [x] Export options (placeholder)
 
 ### 1.4 Core Analytics
 
 - [ ] Basic statistical analysis
+  - [ ] Distance and time summaries
+  - [ ] Pace distribution
+  - [ ] Heart rate zones
+  - [ ] Power metrics (Stryd)
 - [ ] Power zone calculations
+  - [ ] Zone detection
+  - [ ] Time in zones
+  - [ ] Zone transitions
 - [ ] Pace analysis
+  - [ ] Pace trends
+  - [ ] Race pace predictions
+  - [ ] Training paces
 - [ ] Form metrics analysis
+  - [ ] Cadence analysis
+  - [ ] Ground time trends
+  - [ ] Vertical oscillation
+  - [ ] Power efficiency
 
 ### 1.5 Data Visualization
 

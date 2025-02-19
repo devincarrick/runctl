@@ -44,3 +44,4 @@ When the status changes, include the date and explanation here.
 - [ADR-0003](0003-tui-implementation.md) - TUI Implementation Architecture
 - [ADR-0004](0004-csv-data-processing.md) - CSV Data Processing Implementation
 - [ADR-0005](0005-csv-parser-implementation.md) - Implementation of flexible CSV parser for multiple data formats
+- [ADR-0006](0006-data-import-ui.md) - Implementation of TUI-based data import interface
