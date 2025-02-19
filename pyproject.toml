@@ -5,46 +5,45 @@ build-backend = "hatchling.build"
 [project]
 name = "runctl"
 version = "0.1.0"
-description = "A TUI application for analyzing running metrics and managing training data"
+authors = [
+    { name="Devin Carrick", email="devin.carrick@example.com" },
+]
+description = "A TUI application for analyzing running metrics"
 readme = "README.md"
 requires-python = ">=3.8"
-license = "MIT"
-authors = [
-    { name = "Devin Carrick", email = "your.email@example.com" }
-]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Environment :: Console",
-    "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
 ]
 dependencies = [
     "blessed>=1.20.0",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
-    "garth>=0.4.0",
-    "sqlalchemy>=2.0.0",
-    "pydantic>=2.0.0",
+    "garth>=0.4.42",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "isort>=5.0.0",
-    "mypy>=1.0.0",
-    "pylint>=2.17.0",
+    "ruff>=0.1.0",
 ]
 
-[project.scripts]
-runctl = "runctl.cli.commands:main"
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=runctl --cov-report=term-missing"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
 
 [tool.black]
 line-length = 88
@@ -62,8 +61,4 @@ warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.pylint.messages_control]
-disable = ["C0111", "C0103"]
-
-[tool.pytest.ini_options]
-addopts = "--cov=runctl --cov-report=term-missing"
-testpaths = ["tests"] 
+disable = ["C0111", "C0103"] 
