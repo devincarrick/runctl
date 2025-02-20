@@ -1,40 +1,30 @@
-# Architecture Decision Records
+# Architectural Decision Records
 
-## Overview
+This directory contains Architectural Decision Records (ADRs) for the RunCTL project.
 
-This directory contains Architecture Decision Records (ADRs) for the RunCtl project.
+## Index
+
+1. [Project Structure](0001-project-structure.md)
+2. [TUI Framework Selection](0002-tui-framework-selection.md)
+3. [CSV Parser Implementation](0003-csv-parser-implementation.md)
+4. [Pace Analysis Implementation](0004-pace-analysis-implementation.md)
 
 ## What is an ADR?
 
-An ADR is a document that captures an important architectural decision made along with its context and consequences.
+An Architectural Decision Record (ADR) is a document that captures an important architectural decision made along with its context and consequences. It provides a record of what was decided, why it was decided, and how it impacts the project.
 
 ## ADR Format
 
-Each ADR should follow this format:
+Each ADR follows this format:
 
-```markdown
-# ADR {NUMBER}: {TITLE}
-
-## Status
-
-[Proposed | Accepted | Deprecated | Superseded]
-
-## Context
-
-What is the issue that we're seeing that is motivating this decision or change?
-
-## Decision
-
-What is the change that we're proposing and/or doing?
-
-## Consequences
-
-What becomes easier or more difficult to do because of this change?
-
-## Updates
-
-When the status changes, include the date and explanation here.
-```
+1. **Title**: Short noun phrase describing the decision
+2. **Status**: Proposed, Accepted, Deprecated, Superseded
+3. **Context**: Forces at play and problem being solved
+4. **Decision**: The change being proposed or made
+5. **Consequences**: Impact of the decision, both positive and negative
+6. **Technical Details**: Implementation specifics when relevant
+7. **Alternatives**: Other options considered
+8. **References**: Links to external resources
 
 ## ADR List
 

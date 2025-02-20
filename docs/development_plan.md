@@ -64,10 +64,10 @@ Estimated Timeline: 2-3 weeks
   - [x] Zone detection
   - [x] Time in zones
   - [x] Zone transitions
-- [ ] Pace analysis
-  - [ ] Pace trends
-  - [ ] Race pace predictions
-  - [ ] Training paces
+- [x] Pace analysis
+  - [x] Pace trends
+  - [x] Race pace predictions
+  - [x] Training paces
 - [ ] Form metrics analysis
   - [ ] Cadence analysis
   - [ ] Ground time trends
