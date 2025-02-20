@@ -34,7 +34,6 @@ dev = [
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "--cov=runctl --cov-report=term-missing"
-asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
