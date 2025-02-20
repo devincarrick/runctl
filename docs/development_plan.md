@@ -68,11 +68,11 @@ Estimated Timeline: 2-3 weeks
   - [x] Pace trends
   - [x] Race pace predictions
   - [x] Training paces
-- [ ] Form metrics analysis
-  - [ ] Cadence analysis
-  - [ ] Ground time trends
-  - [ ] Vertical oscillation
-  - [ ] Power efficiency
+- [x] Form metrics analysis
+  - [x] Cadence analysis
+  - [x] Ground time trends
+  - [x] Vertical oscillation
+  - [x] Power efficiency
 
 ### 1.5 Data Visualization
 

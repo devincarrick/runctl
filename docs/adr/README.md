@@ -8,6 +8,7 @@ This directory contains Architectural Decision Records (ADRs) for the RunCTL pro
 2. [TUI Framework Selection](0002-tui-framework-selection.md)
 3. [CSV Parser Implementation](0003-csv-parser-implementation.md)
 4. [Pace Analysis Implementation](0004-pace-analysis-implementation.md)
+5. [Form Metrics Implementation](0005-form-metrics-implementation.md)
 
 ## What is an ADR?
 
