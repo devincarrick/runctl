@@ -41,4 +41,7 @@ Thumbs.db
 !data/sample_fit/sample.fit
 !data/sample_csv/sample.csv
 !tests/test_data/*.fit
-!tests/test_data/*.csv 
+!tests/test_data/*.csv
+
+# Project Management
+project_management/ 
