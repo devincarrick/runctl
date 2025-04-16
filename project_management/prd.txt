@@ -1,0 +1,270 @@
+# runctl: Terminal-Based Running Analytics Platform
+
+# Overview
+runctl is a terminal-based running analytics platform designed for software engineers and data enthusiasts who appreciate command-line interfaces. Born from a simple need to clean heart rate data, it evolves into a comprehensive data engineering platform that demonstrates modern data stack capabilities while providing valuable running analytics.
+
+The platform solves several key problems:
+- Inaccurate heart rate data in running activities
+- Lack of terminal-based tools for running analytics
+- Need for transparent data processing in fitness tracking
+- Limited access to raw fitness data for custom analysis
+
+Target Users:
+- Software engineers who run
+- Data engineers interested in fitness analytics
+- Technical users who prefer terminal-based tools
+- Athletes who want more control over their training data
+
+# Core Features
+
+## 1. Data Cleaning and Processing
+- Smart heart rate anomaly detection and correction using multi-source validation
+- Power-based heart rate zone validation (Stryd integration)
+- FIT file format support (primary)
+- Stryd CSV format support for power data validation
+- Multi-format support (GPX, TCX) - future
+- Configurable cleaning parameters
+- Data quality reporting
+
+## 2. Terminal User Interface (TUI)
+- Real-time activity metrics dashboard
+- Training load and fitness trends visualization
+- Interactive data exploration
+- Progress tracking and goal monitoring
+- System status and pipeline monitoring
+
+## 3. Data Pipeline Management
+- Automated ETL/ELT workflows
+- Real-time and batch processing capabilities
+- Data quality monitoring and alerting
+- Metadata management and lineage tracking
+- Performance metrics and optimization
+
+## 4. Analytics and Insights
+- Training load calculation and tracking
+- Performance trend analysis
+- Race time predictions
+- Custom metric calculations
+- Historical data analysis
+
+## 5. External Integration
+- Strava API integration for data sync
+- Garmin Connect compatibility
+- Export capabilities for various formats
+- Webhook support for real-time updates
+
+# User Experience
+
+## Primary User Persona: The Developer-Athlete
+- Software engineer who runs regularly
+- Comfortable with command-line interfaces
+- Interested in data analysis and visualization
+- Values data privacy and control
+- Appreciates technical documentation and clear APIs
+
+## Key User Flows
+
+### Initial Setup Flow:
+1. Install via package manager
+2. Configure data sources and storage
+3. Set up external integrations
+4. Import historical data
+5. Configure cleaning parameters
+
+### Daily Usage Flow:
+1. Import new activity data
+2. Review cleaning results
+3. Approve and sync to external platforms
+4. Check training metrics
+5. Analyze performance trends
+
+### Analysis Flow:
+1. Access TUI dashboard
+2. Explore specific metrics
+3. Generate custom reports
+4. Export processed data
+5. Review pipeline status
+
+## UI/UX Considerations
+- Consistent terminal interface design
+- Intuitive keyboard shortcuts
+- Clear error messages and logging
+- Progressive disclosure of advanced features
+- Responsive TUI updates
+
+# Technical Architecture
+
+## System Components
+
+### Data Ingestion Layer
+- File system watchers for new data
+- API endpoints for external sources
+- Stream processing for real-time data
+- Format conversion and validation
+
+### Processing Layer
+- Apache Airflow for orchestration
+- dbt for transformations
+- Stream processing with Apache Kafka
+- Data quality checks with Great Expectations
+
+### Storage Layer
+- Delta Lake for data lake
+- ClickHouse for time-series data
+- Redis for caching and real-time features
+- Local file system integration
+
+### Analytics Layer
+- Custom metrics calculation engine
+- Statistical analysis modules
+- Machine learning pipeline
+- Real-time aggregation engine
+
+### Interface Layer
+- CLI interface with Click
+- TUI with Textual
+- RESTful API with FastAPI
+- WebSocket for real-time updates
+
+## Data Models
+
+### Activity Data
+- Raw activity metrics
+- Cleaned and processed data
+- Derived metrics and insights
+- Quality metrics and flags
+
+### Training Metrics
+- Daily/weekly/monthly aggregates
+- Training load calculations
+- Performance indicators
+- Goal tracking data
+
+### System Metadata
+- Pipeline execution logs
+- Data quality metrics
+- System performance data
+- Integration status
+
+# Development Roadmap
+
+## Phase 1: Foundation (The Origin Script)
+- Multi-source heart rate data cleaning (FIT + Stryd CSV)
+- Power-based heart rate validation using Stryd data
+- Command-line interface for file processing
+- Unit tests and documentation
+- Data alignment and validation between sources
+- Statistical anomaly detection
+- Heart rate zone validation against power zones
+
+## Phase 2: Engineering Best Practices
+- Package structure and organization
+- Logging and error handling
+- Configuration management
+- CI/CD pipeline
+- Extended test coverage
+
+## Phase 3: Data Engineering Foundation
+- ETL pipeline implementation
+- Multi-format support (GPX, TCX)
+- Data validation framework
+- Basic storage solution
+- Metric calculations
+- Enhanced CLI
+
+## Phase 4: Advanced Data Platform
+- Stream processing
+- Data warehouse integration
+- Quality monitoring
+- Metadata management
+- Basic TUI dashboard
+- Pipeline orchestration
+
+## Phase 5: Production Features
+- Advanced analytics
+- Machine learning integration
+- API layer
+- Advanced TUI
+- Cloud integration
+- Comprehensive monitoring
+
+# Logical Dependency Chain
+
+## Foundation Layer
+1. Data cleaning core logic
+2. File I/O and format handling
+3. Basic CLI interface
+4. Testing framework
+
+## Data Processing Layer
+1. ETL pipeline structure
+2. Storage implementation
+3. Data validation
+4. Quality monitoring
+
+## Interface Layer
+1. Enhanced CLI capabilities
+2. Basic TUI implementation
+3. API development
+4. Real-time updates
+
+## Analytics Layer
+1. Basic metrics calculation
+2. Advanced analytics
+3. Machine learning features
+4. Custom reporting
+
+## Integration Layer
+1. External API connections
+2. Data sync capabilities
+3. Export functionality
+4. Webhook support
+
+# Risks and Mitigations
+
+## Technical Challenges
+- Risk: Complex data processing requirements
+  Mitigation: Incremental implementation, thorough testing
+
+- Risk: Real-time processing overhead
+  Mitigation: Efficient algorithms, caching strategies
+
+- Risk: Data quality issues
+  Mitigation: Robust validation, clear error handling
+
+## Development Risks
+- Risk: Scope creep
+  Mitigation: Phased approach, clear MVP definition
+
+- Risk: Performance bottlenecks
+  Mitigation: Early performance testing, optimization
+
+- Risk: Technical debt
+  Mitigation: Regular refactoring, code reviews
+
+## Integration Risks
+- Risk: API changes in external services
+  Mitigation: Version monitoring, adapter pattern
+
+- Risk: Data format variations
+  Mitigation: Flexible parsing, format validation
+
+# Appendix
+
+## Research Findings
+- Analysis of existing running platforms
+- Study of heart rate data anomalies
+- Performance optimization techniques
+- Data engineering best practices
+
+## Technical Specifications
+- Detailed API documentation
+- Data model specifications
+- Pipeline architecture diagrams
+- Performance benchmarks
+
+## Development Guidelines
+- Code style guide
+- Documentation requirements
+- Testing standards
+- Release procedures 
