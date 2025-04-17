@@ -64,7 +64,7 @@ runctl/
 
 - [Project Overview](docs/overview.md)
 - [Technical Architecture](docs/architecture.md)
-- [Development Guide](docs/development.md) (coming soon)
+- [Development Guide](docs/development.md)
 - [API Documentation](docs/api.md) (coming soon)
 
 ## License
