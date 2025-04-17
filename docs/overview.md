@@ -23,8 +23,7 @@ We are currently implementing Phase 1 of the project, focusing on:
 - Data quality reporting
 
 ## External Resources
-- [Project Management Documentation](https://www.notion.so/runctl) (to be created)
-- [GitHub Issues Board](https://github.com/yourusername/runctl/issues) (to be created)
+- [GitHub Issues Board](https://github.com/devincarrick/runctl/issues)
 
 ## Target Users
 - Software engineers who run
